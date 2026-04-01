@@ -1,26 +1,29 @@
-﻿const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+﻿const BASE_URL = "/api";
 
-export async function request(path, options = {}, token) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-
-  if (token) {
-    headers.Authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, {
+export async function request(path, options = {}) {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
     ...options,
-    headers,
   });
 
-  const payload = await response.json().catch(() => null);
+  const contentType = response.headers.get("content-type") || "";
+
   if (!response.ok) {
-    throw new Error(payload?.message || `HTTP ${response.status}`);
+    const text = await response.text();
+    throw new Error(text || `HTTP ${response.status}`);
   }
-  if (payload?.code && payload.code !== 200) {
-    throw new Error(payload.message || "request failed");
+
+  if (contentType.includes("application/json")) {
+    const data = await response.json();
+    if (data.code !== 200) {
+      throw new Error(data.message || `HTTP ${response.status}`);
+    }
+    return data.data ?? data;
   }
-  return payload?.data ?? payload;
+
+  const text = await response.text();
+  throw new Error(text || "Unexpected response");
 }

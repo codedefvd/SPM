@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AppShell } from "./layouts/AppShell";
 import { roleMenus } from "./config/navigation";
 import { AuthPage } from "./pages/auth/AuthPage";
+import { ReaderRegisterPage } from "./pages/reader/ReaderRegisterPage";
 import { ReaderBooksPage } from "./pages/reader/ReaderBooksPage";
 import { ReaderRecordsPage } from "./pages/reader/ReaderRecordsPage";
 import { ReaderReservationsPage } from "./pages/reader/ReaderReservationsPage";
@@ -35,6 +36,7 @@ export default function App() {
   const initialWorkspace = loadWorkspace();
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [activeKey, setActiveKey] = useState(initialWorkspace?.activeKey || getDefaultPage("READER"));
+  const [authMode, setAuthMode] = useState("login");
 
   const menus = useMemo(() => {
     if (!workspace) {
@@ -66,6 +68,7 @@ export default function App() {
     localStorage.removeItem(STORAGE_KEY);
     setWorkspace(null);
     setActiveKey(getDefaultPage("READER"));
+    setAuthMode("login");
   }
 
   function renderPage() {
@@ -92,7 +95,16 @@ export default function App() {
   }
 
   if (!workspace) {
-    return <AuthPage onLogin={handleLogin} />;
+    if (authMode === "register") {
+      return <ReaderRegisterPage onGoLogin={() => setAuthMode("login")} />;
+    }
+
+    return (
+      <AuthPage
+        onLogin={handleLogin}
+        onGoRegister={() => setAuthMode("register")}
+      />
+    );
   }
 
   return (
