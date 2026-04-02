@@ -8,20 +8,27 @@ import com.team.lms.reader.dto.ReaderLoginRequest;
 import com.team.lms.reader.dto.ReaderRegisterRequest;
 import com.team.lms.reader.service.ReaderAuthService;
 import com.team.lms.reader.vo.ReaderAuthVo;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class ReaderAuthServiceImpl implements ReaderAuthService {
 
     private final UserMapper userMapper;
+
+    public ReaderAuthServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
 
     @Override
     public ReaderAuthVo register(ReaderRegisterRequest request) {
         User existing = userMapper.selectByUsername(request.getUsername());
         if (existing != null) {
             throw new BusinessException(400, "username already exists");
+        }
+
+        User existingStudentNo = userMapper.selectByStudentNo(request.getStudentNo());
+        if (existingStudentNo != null) {
+            throw new BusinessException(400, "studentNo already exists");
         }
 
         User user = new User();

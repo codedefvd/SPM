@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { authApi } from "../../api/client";
+import { authApi } from "../../api/auth";
 
-export function AuthPage({ onLogin }) {
+export function AuthPage({ onLogin, onGoRegister }) {
   const [username, setUsername] = useState("reader");
   const [password, setPassword] = useState("123456");
   const [role, setRole] = useState("READER");
@@ -56,6 +56,7 @@ export function AuthPage({ onLogin }) {
               <label>Workspace User</label>
               <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="reader" />
             </div>
+
             <div className="field">
               <label>Password</label>
               <input
@@ -65,6 +66,7 @@ export function AuthPage({ onLogin }) {
                 placeholder="123456"
               />
             </div>
+
             <div className="field">
               <label>Role Workspace</label>
               <select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -73,13 +75,27 @@ export function AuthPage({ onLogin }) {
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
+
             <button className="primary-button" type="submit" disabled={loading}>
               {loading ? "Entering..." : "Enter Workspace"}
             </button>
+
+            {role === "READER" ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={onGoRegister}
+                style={{ marginTop: "12px", width: "100%" }}
+              >
+                Go Register
+              </button>
+            ) : null}
           </form>
+
           <p className="page-note">
             Demo accounts in seeded SQL: `reader / 123456`, `librarian / 123456`, `admin / 123456`.
           </p>
+
           {error ? <p className="page-note">{error}</p> : null}
         </section>
       </div>

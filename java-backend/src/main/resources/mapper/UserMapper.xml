@@ -26,6 +26,10 @@
         select * from users where username = #{username} and deleted = false
     </select>
 
+    <select id="selectByStudentNo" resultMap="UserResultMap">
+        select * from users where student_no = #{studentNo} and deleted = false
+    </select>
+
     <select id="selectAllActive" resultMap="UserResultMap">
         select * from users where deleted = false order by id desc
     </select>
@@ -38,12 +42,12 @@
     <update id="update" parameterType="com.team.lms.entity.User">
         update users
         set password = #{password},
-            full_name = #{fullName},
-            student_no = #{studentNo},
-            phone = #{phone},
-            role = #{role},
-            enabled = #{enabled},
-            updated_at = now()
+        full_name = #{fullName},
+        student_no = #{studentNo},
+        phone = #{phone},
+        role = #{role},
+        enabled = #{enabled},
+        updated_at = now()
         where id = #{id}
     </update>
 </mapper>
