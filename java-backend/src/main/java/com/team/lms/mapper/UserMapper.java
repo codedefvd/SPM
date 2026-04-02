@@ -9,6 +9,7 @@ import java.util.List;
 public interface UserMapper {
     User selectById(Long id);
     User selectByUsername(String username);
+    User selectByStudentNo(String studentNo);
     List<User> selectAllActive();
     int insert(User user);
     int update(User user);
