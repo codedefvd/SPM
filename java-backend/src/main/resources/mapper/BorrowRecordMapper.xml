@@ -86,5 +86,48 @@
             return_date = #{returnDate},
             updated_at = now()
         where id = #{id}
+
     </update>
+    <select id="selectPopularBooks" resultType="com.team.lms.mapper.BorrowRecordMapper$PopularBookStat">
+        SELECT
+        b.id as bookId,
+        b.title,
+        b.author,
+        c.name as categoryName,
+        COUNT(br.id) as borrowCount
+        FROM borrow_record br
+        JOIN book b ON br.book_id = b.id
+        LEFT JOIN category c ON b.category_id = c.id
+        WHERE br.status IN ('BORROWED', 'RETURNED', 'RETURN_PENDING')
+        GROUP BY b.id, b.title, b.author, c.name
+        ORDER BY borrowCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectBorrowTrend" resultType="com.team.lms.mapper.BorrowRecordMapper$BorrowTrendStat">
+        <choose>
+            <when test="groupBy == 'month'">
+                SELECT
+                DATE_FORMAT(borrow_date, '%Y-%m') as period,
+                COUNT(CASE WHEN borrow_date IS NOT NULL THEN 1 END) as borrowCount,
+                COUNT(CASE WHEN return_date IS NOT NULL THEN 1 END) as returnCount
+                FROM borrow_record
+                WHERE borrow_date IS NOT NULL
+                GROUP BY DATE_FORMAT(borrow_date, '%Y-%m')
+                ORDER BY period DESC
+                LIMIT 12
+            </when>
+            <otherwise>
+                SELECT
+                CONCAT(YEARWEEK(borrow_date), '周') as period,
+                COUNT(CASE WHEN borrow_date IS NOT NULL THEN 1 END) as borrowCount,
+                COUNT(CASE WHEN return_date IS NOT NULL THEN 1 END) as returnCount
+                FROM borrow_record
+                WHERE borrow_date IS NOT NULL
+                GROUP BY YEARWEEK(borrow_date)
+                ORDER BY period DESC
+                LIMIT 12
+            </otherwise>
+        </choose>
+    </select>
 </mapper>

@@ -21,4 +21,5 @@ public interface LibrarianOperationsService {
     FineManageVo updateFineStatus(String authorizationHeader, Long fineId, FineStatusUpdateRequest request);
 
     LibrarianStatsVo getStatistics();
+    LibrarianStatsDetailVo getDetailedStatistics(String periodType);
 }

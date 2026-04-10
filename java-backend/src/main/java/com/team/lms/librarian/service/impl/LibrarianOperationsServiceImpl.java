@@ -256,4 +256,35 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .status(fine.getStatus() == null ? null : fine.getStatus().name())
                 .build();
     }
+    @Override
+    public LibrarianStatsDetailVo getDetailedStatistics(String periodType) {
+        LibrarianStatsVo basicStats = getStatistics();
+
+        List<LibrarianStatsDetailVo.PopularBookVo> popularBooks =
+                borrowRecordMapper.selectPopularBooks(10).stream()
+                        .map(stat -> LibrarianStatsDetailVo.PopularBookVo.builder()
+                                .bookId(stat.getBookId())
+                                .title(stat.getTitle())
+                                .author(stat.getAuthor())
+                                .borrowCount(stat.getBorrowCount())
+                                .categoryName(stat.getCategoryName())
+                                .build())
+                        .toList();
+
+        String groupBy = "month".equalsIgnoreCase(periodType) ? "month" : "week";
+        List<LibrarianStatsDetailVo.BorrowTrendVo> borrowTrend =
+                borrowRecordMapper.selectBorrowTrend(groupBy).stream()
+                        .map(stat -> LibrarianStatsDetailVo.BorrowTrendVo.builder()
+                                .period(stat.getPeriod())
+                                .borrowCount(stat.getBorrowCount())
+                                .returnCount(stat.getReturnCount())
+                                .build())
+                        .toList();
+
+        return LibrarianStatsDetailVo.builder()
+                .basicStats(basicStats)
+                .popularBooks(popularBooks)
+                .borrowTrend(borrowTrend)
+                .build();
+    }
 }

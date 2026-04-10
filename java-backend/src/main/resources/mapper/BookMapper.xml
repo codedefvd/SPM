@@ -95,4 +95,11 @@
             updated_at = now()
         where id = #{id}
     </update>
+    <select id="countByCategoryId" resultType="long">
+        SELECT COUNT(*) FROM book WHERE category_id = #{categoryId} AND deleted = 0
+    </select>
+
+    <update id="clearCategoryByCategoryId">
+        UPDATE book SET category_id = NULL WHERE category_id = #{categoryId}
+    </update>
 </mapper>
