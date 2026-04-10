@@ -10,4 +10,5 @@ public interface LibrarianCategoryService {
     List<CategoryManageVo> listCategories();
     CategoryManageVo createCategory(CategoryCreateRequest request);
     CategoryManageVo updateCategory(Long categoryId, CategoryUpdateRequest request);
+    void deleteCategory(Long categoryId, boolean force);
 }

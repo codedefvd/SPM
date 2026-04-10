@@ -8,12 +8,13 @@ import java.util.List;
 
 @Mapper
 public interface BookMapper {
-    Book selectById(Long id);
-    List<Book> selectAllVisible();
-    List<Book> selectVisibleByKeyword(@Param("keyword") String keyword);
     List<Book> selectAll();
-    Book selectByIsbn(@Param("isbn") String isbn);
-    int insert(Book book);
-    int update(Book book);
-    int softDeleteById(@Param("id") Long id);
+    Book selectById(Long id);
+    Book selectByIsbn(String isbn);
+    void insert(Book book);
+    void update(Book book);
+    void softDeleteById(Long id);
+
+    long countByCategoryId(@Param("categoryId") Long categoryId);
+    void clearCategoryByCategoryId(@Param("categoryId") Long categoryId);
 }

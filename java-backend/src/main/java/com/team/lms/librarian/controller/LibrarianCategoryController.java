@@ -33,4 +33,11 @@ public class LibrarianCategoryController extends BaseController {
     public ApiResponse<CategoryManageVo> updateCategory(@PathVariable Long categoryId, @Valid @RequestBody CategoryUpdateRequest request) {
         return success(librarianCategoryService.updateCategory(categoryId, request));
     }
+    @DeleteMapping("/{categoryId}")
+    public ApiResponse<Void> deleteCategory(@PathVariable Long categoryId,
+                                            @RequestBody(required = false) CategoryDeleteRequest request) {
+        boolean force = request != null && Boolean.TRUE.equals(request.getForce());
+        librarianCategoryService.deleteCategory(categoryId, force);
+        return success(null);
+    }
 }

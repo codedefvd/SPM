@@ -69,4 +69,9 @@ public class LibrarianOperationsController extends BaseController {
     public ApiResponse<LibrarianStatsVo> getStatistics() {
         return success(librarianOperationsService.getStatistics());
     }
+    @GetMapping("/statistics/detailed")
+    public ApiResponse<LibrarianStatsDetailVo> getDetailedStatistics(
+            @RequestParam(value = "periodType", defaultValue = "month") String periodType) {
+        return success(librarianOperationsService.getDetailedStatistics(periodType));
+    }
 }

@@ -18,6 +18,7 @@ import java.util.List;
 public class LibrarianCategoryServiceImpl implements LibrarianCategoryService {
 
     private final CategoryMapper categoryMapper;
+    private final BookMapper bookMapper;
 
     @Override
     public List<CategoryManageVo> listCategories() {
@@ -63,5 +64,24 @@ public class LibrarianCategoryServiceImpl implements LibrarianCategoryService {
                 .name(category.getName())
                 .enabled(category.getEnabled())
                 .build();
+    }
+    @Override
+    @Transactional
+    public void deleteCategory(Long categoryId, boolean force) {
+        Category category = categoryMapper.selectById(categoryId);
+        if (category == null) {
+            throw new BusinessException(404, "category not found");
+        }
+
+        long bookCount = bookMapper.countByCategoryId(categoryId);
+        if (bookCount > 0 && !force) {
+            throw new BusinessException(400, "category has " + bookCount + " books associated, use force=true to delete anyway");
+        }
+
+        if (force && bookCount > 0) {
+            bookMapper.clearCategoryByCategoryId(categoryId);
+        }
+
+        categoryMapper.softDeleteById(categoryId);
     }
 }
