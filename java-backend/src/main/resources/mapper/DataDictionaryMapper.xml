@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.team.lms.mapper.DataDictionaryMapper">
+
+    <resultMap id="DataDictionaryResultMap" type="com.team.lms.entity.DataDictionary">
+        <id property="id" column="id"/>
+        <result property="dictType" column="dict_type"/>
+        <result property="dictCode" column="dict_code"/>
+        <result property="dictName" column="dict_name"/>
+        <result property="businessValue" column="business_value"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="enabled" column="enabled"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="DataDictionaryResultMap">
+        select * from data_dictionaries where id = #{id} and deleted = false
+    </select>
+
+    <select id="selectByTypeAndCode" resultMap="DataDictionaryResultMap">
+        select *
+        from data_dictionaries
+        where dict_type = #{dictType}
+          and dict_code = #{dictCode}
+          and deleted = false
+        limit 1
+    </select>
+
+    <select id="selectAll" resultMap="DataDictionaryResultMap">
+        select *
+        from data_dictionaries
+        where deleted = false
+        order by dict_type asc, sort_order asc, id asc
+    </select>
+
+    <select id="selectByType" resultMap="DataDictionaryResultMap">
+        select *
+        from data_dictionaries
+        where dict_type = #{dictType}
+          and deleted = false
+        order by sort_order asc, id asc
+    </select>
+
+    <insert id="insert" parameterType="com.team.lms.entity.DataDictionary" useGeneratedKeys="true" keyProperty="id">
+        insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+        values(#{dictType}, #{dictCode}, #{dictName}, #{businessValue}, #{sortOrder}, #{enabled}, #{description}, now(), now(), false)
+    </insert>
+
+    <update id="update" parameterType="com.team.lms.entity.DataDictionary">
+        update data_dictionaries
+        set dict_name = #{dictName},
+            business_value = #{businessValue},
+            sort_order = #{sortOrder},
+            enabled = #{enabled},
+            description = #{description},
+            updated_at = now()
+        where id = #{id}
+          and deleted = false
+    </update>
+
+    <update id="softDeleteById">
+        update data_dictionaries
+        set deleted = true,
+            updated_at = now()
+        where id = #{id}
+          and deleted = false
+    </update>
+</mapper>

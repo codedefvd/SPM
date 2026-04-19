@@ -119,6 +119,21 @@ create table if not exists fines (
     constraint fk_fine_borrow_record foreign key (borrow_record_id) references borrow_records(id)
 );
 
+create table if not exists data_dictionaries (
+    id bigint primary key auto_increment,
+    dict_type varchar(64) not null,
+    dict_code varchar(64) not null,
+    dict_name varchar(128) not null,
+    business_value varchar(255),
+    sort_order int not null default 0,
+    enabled boolean not null default true,
+    description varchar(500),
+    created_at datetime not null,
+    updated_at datetime not null,
+    deleted boolean not null default false,
+    unique key uk_dictionary_type_code_deleted (dict_type, dict_code, deleted)
+);
+
 insert into categories(code, name, enabled, created_at, updated_at, deleted)
 select 'CS', 'Computer Science', true, now(), now(), false
 where not exists (select 1 from categories where code = 'CS');
@@ -126,6 +141,60 @@ where not exists (select 1 from categories where code = 'CS');
 insert into categories(code, name, enabled, created_at, updated_at, deleted)
 select 'LIT', 'Literature', true, now(), now(), false
 where not exists (select 1 from categories where code = 'LIT');
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'CATEGORY', 'CS', 'Computer Science', 'BOOK_CATEGORY', 10, true, 'Seeded category dictionary entry.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'CATEGORY' and dict_code = 'CS' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'CATEGORY', 'LIT', 'Literature', 'BOOK_CATEGORY', 20, true, 'Seeded category dictionary entry.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'CATEGORY' and dict_code = 'LIT' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'STATUS', 'ON_SHELF', 'On Shelf', 'BOOK_SHELF_STATUS', 10, true, 'Book can be discovered and borrowed.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'STATUS' and dict_code = 'ON_SHELF' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'STATUS', 'OFF_SHELF', 'Off Shelf', 'BOOK_SHELF_STATUS', 20, true, 'Book cannot be borrowed temporarily.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'STATUS' and dict_code = 'OFF_SHELF' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'STATUS', 'PENDING', 'Pending', 'BORROW_REQUEST_STATUS', 30, true, 'Request is waiting for processing.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'STATUS' and dict_code = 'PENDING' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'STATUS', 'APPROVED', 'Approved', 'BORROW_REQUEST_STATUS', 40, true, 'Request is approved.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'STATUS' and dict_code = 'APPROVED' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'STATUS', 'REJECTED', 'Rejected', 'BORROW_REQUEST_STATUS', 50, true, 'Request is rejected.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'STATUS' and dict_code = 'REJECTED' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'BUSINESS_CODE', 'FINE_OVERDUE_DAILY', 'Overdue Fine Per Day', '1.50', 10, true, 'Default overdue fine amount per day.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'BUSINESS_CODE' and dict_code = 'FINE_OVERDUE_DAILY' and deleted = false
+);
+
+insert into data_dictionaries(dict_type, dict_code, dict_name, business_value, sort_order, enabled, description, created_at, updated_at, deleted)
+select 'BUSINESS_CODE', 'RESERVATION_EXPIRE_DAYS', 'Reservation Expire Days', '3', 20, true, 'How many days a reservation is kept before expiration.', now(), now(), false
+where not exists (
+    select 1 from data_dictionaries where dict_type = 'BUSINESS_CODE' and dict_code = 'RESERVATION_EXPIRE_DAYS' and deleted = false
+);
 
 insert into users(username, password, full_name, student_no, phone, role, enabled, created_at, updated_at, deleted)
 select 'reader', '123456', 'Demo Reader', 'R2026001', '13800000001', 'READER', true, now(), now(), false

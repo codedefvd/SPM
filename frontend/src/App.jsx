@@ -10,6 +10,7 @@ import { LibrarianCatalogPage } from "./pages/librarian/LibrarianCatalogPage";
 import { LibrarianRequestsPage } from "./pages/librarian/LibrarianRequestsPage";
 import { LibrarianOperationsPage } from "./pages/librarian/LibrarianOperationsPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { AdminDictionariesPage } from "./pages/admin/AdminDictionariesPage";
 import { AdminMonitoringPage } from "./pages/admin/AdminMonitoringPage";
 
 const STORAGE_KEY = "lms_frontend_workspace";
@@ -27,6 +28,7 @@ const pageRoutes = [
     { key: "librarian-requests", role: "LIBRARIAN", path: "/librarian/requests" },
     { key: "librarian-operations", role: "LIBRARIAN", path: "/librarian/operations" },
     { key: "admin-users", role: "ADMIN", path: "/admin/users" },
+    { key: "admin-dictionaries", role: "ADMIN", path: "/admin/dictionaries" },
     { key: "admin-monitoring", role: "ADMIN", path: "/admin/monitoring" },
 ];
 
@@ -176,6 +178,10 @@ export default function App() {
             <Route
                 path="/admin/users"
                 element={renderProtectedPage("ADMIN", "admin-users", <AdminUsersPage workspace={workspace} />)}
+            />
+            <Route
+                path="/admin/dictionaries"
+                element={renderProtectedPage("ADMIN", "admin-dictionaries", <AdminDictionariesPage workspace={workspace} />)}
             />
             <Route
                 path="/admin/monitoring"
