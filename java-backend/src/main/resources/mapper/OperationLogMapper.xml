@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.team.lms.mapper.OperationLogMapper">
+    <insert id="insert" parameterType="com.team.lms.entity.OperationLog">
+        INSERT INTO operation_logs (module_name, action_name, operator_name, result_message, created_at, updated_at, deleted)
+        VALUES (#{moduleName}, #{actionName}, #{operatorName}, #{resultMessage}, NOW(), NOW(), false)
+    </insert>
+    <select id="selectByCondition" resultType="com.team.lms.entity.OperationLog">
+        SELECT * FROM operation_logs
+        WHERE deleted = false
+        <if test="operatorName != null and operatorName != ''">
+            AND operator_name LIKE CONCAT('%', #{operatorName}, '%')
+        </if>
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at <= #{endTime}
+        </if>
+        <if test="actionName != null and actionName != ''">
+            AND action_name LIKE CONCAT('%', #{actionName}, '%')
+        </if>
+        ORDER BY created_at DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{offset}, #{limit}
+        </if>
+    </select>
+    <select id="countByCondition" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM operation_logs
+        WHERE deleted = false
+        <if test="operatorName != null and operatorName != ''">
+            AND operator_name LIKE CONCAT('%', #{operatorName}, '%')
+        </if>
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at <= #{endTime}
+        </if>
+        <if test="actionName != null and actionName != ''">
+            AND action_name LIKE CONCAT('%', #{actionName}, '%')
+        </if>
+    </select>
+    <select id="selectAll" resultType="com.team.lms.entity.OperationLog">
+        SELECT * FROM operation_logs
+        WHERE deleted = false
+        ORDER BY created_at DESC
+    </select>
+</mapper>

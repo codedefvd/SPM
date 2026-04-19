@@ -1,4 +1,4 @@
-﻿@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap");
 
 :root {
   --paper: #fcf6ec;
@@ -391,6 +391,48 @@ th {
 .empty-state {
   display: grid;
   gap: 8px;
+}
+
+.filter-section {
+  margin-bottom: 20px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-input {
+  flex: 1 1 200px;
+  min-width: 150px;
+}
+
+.logs-table {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.logs-table table {
+  min-width: 800px;
+}
+
+.logs-table th,
+.logs-table td {
+  padding: 12px 16px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.pagination span {
+  font-weight: 500;
 }
 
 @media (max-width: 1080px) {

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -96,10 +96,10 @@
         where id = #{id}
     </update>
     <select id="countByCategoryId" resultType="long">
-        SELECT COUNT(*) FROM book WHERE category_id = #{categoryId} AND deleted = 0
+        SELECT COUNT(*) FROM books WHERE category_id = #{categoryId} AND deleted = 0
     </select>
 
     <update id="clearCategoryByCategoryId">
-        UPDATE book SET category_id = NULL WHERE category_id = #{categoryId}
+        UPDATE books SET category_id = NULL WHERE category_id = #{categoryId}
     </update>
 </mapper>

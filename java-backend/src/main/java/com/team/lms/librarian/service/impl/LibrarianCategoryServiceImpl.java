@@ -6,6 +6,7 @@ import com.team.lms.librarian.dto.CategoryCreateRequest;
 import com.team.lms.librarian.dto.CategoryUpdateRequest;
 import com.team.lms.librarian.service.LibrarianCategoryService;
 import com.team.lms.librarian.vo.CategoryManageVo;
+import com.team.lms.mapper.BookMapper;
 import com.team.lms.mapper.CategoryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

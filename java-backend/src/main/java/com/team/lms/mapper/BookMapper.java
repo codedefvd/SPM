@@ -17,4 +17,6 @@ public interface BookMapper {
 
     long countByCategoryId(@Param("categoryId") Long categoryId);
     void clearCategoryByCategoryId(@Param("categoryId") Long categoryId);
+    List<Book> selectAllVisible();
+    List<Book> selectVisibleByKeyword(@Param("keyword") String keyword);
 }
