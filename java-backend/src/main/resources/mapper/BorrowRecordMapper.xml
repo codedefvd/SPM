@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -86,7 +86,6 @@
             return_date = #{returnDate},
             updated_at = now()
         where id = #{id}
-
     </update>
     <select id="selectPopularBooks" resultType="com.team.lms.mapper.BorrowRecordMapper$PopularBookStat">
         SELECT
@@ -95,9 +94,9 @@
         b.author,
         c.name as categoryName,
         COUNT(br.id) as borrowCount
-        FROM borrow_record br
-        JOIN book b ON br.book_id = b.id
-        LEFT JOIN category c ON b.category_id = c.id
+        FROM borrow_records br
+        JOIN books b ON br.book_id = b.id
+        LEFT JOIN categories c ON b.category_id = c.id
         WHERE br.status IN ('BORROWED', 'RETURNED', 'RETURN_PENDING')
         GROUP BY b.id, b.title, b.author, c.name
         ORDER BY borrowCount DESC
@@ -111,7 +110,7 @@
                 DATE_FORMAT(borrow_date, '%Y-%m') as period,
                 COUNT(CASE WHEN borrow_date IS NOT NULL THEN 1 END) as borrowCount,
                 COUNT(CASE WHEN return_date IS NOT NULL THEN 1 END) as returnCount
-                FROM borrow_record
+                FROM borrow_records
                 WHERE borrow_date IS NOT NULL
                 GROUP BY DATE_FORMAT(borrow_date, '%Y-%m')
                 ORDER BY period DESC
@@ -122,7 +121,7 @@
                 CONCAT(YEARWEEK(borrow_date), '周') as period,
                 COUNT(CASE WHEN borrow_date IS NOT NULL THEN 1 END) as borrowCount,
                 COUNT(CASE WHEN return_date IS NOT NULL THEN 1 END) as returnCount
-                FROM borrow_record
+                FROM borrow_records
                 WHERE borrow_date IS NOT NULL
                 GROUP BY YEARWEEK(borrow_date)
                 ORDER BY period DESC

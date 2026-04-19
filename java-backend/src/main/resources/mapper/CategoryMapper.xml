@@ -43,4 +43,11 @@
             updated_at = now()
         where id = #{id}
     </update>
+
+    <update id="softDeleteById" parameterType="java.lang.Long">
+        update categories
+        set deleted = true,
+            updated_at = now()
+        where id = #{id}
+    </update>
 </mapper>

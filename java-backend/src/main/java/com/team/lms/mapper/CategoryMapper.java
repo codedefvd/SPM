@@ -13,4 +13,5 @@ public interface CategoryMapper {
     List<Category> selectAll();
     int insert(Category category);
     int update(Category category);
+    void softDeleteById(Long id);
 }

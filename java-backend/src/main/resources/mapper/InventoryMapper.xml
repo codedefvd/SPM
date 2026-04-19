@@ -17,16 +17,16 @@
     </resultMap>
 
     <select id="selectByBookId" resultMap="InventoryResultMap">
-        select * from inventory where book_id = #{bookId} and deleted = false
+        select * from inventories where book_id = #{bookId} and deleted = false
     </select>
 
     <insert id="insert" parameterType="com.team.lms.entity.Inventory" useGeneratedKeys="true" keyProperty="id">
-        insert into inventory(book_id, total_copies, available_copies, created_at, updated_at, deleted)
+        insert into inventories(book_id, total_copies, available_copies, created_at, updated_at, deleted)
         values(#{book.id}, #{totalCopies}, #{availableCopies}, now(), now(), false)
     </insert>
 
     <update id="update" parameterType="com.team.lms.entity.Inventory">
-        update inventory
+        update inventories
         set total_copies = #{totalCopies},
             available_copies = #{availableCopies},
             updated_at = now()

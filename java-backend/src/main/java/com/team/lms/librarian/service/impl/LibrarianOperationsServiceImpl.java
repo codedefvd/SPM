@@ -16,6 +16,7 @@ import com.team.lms.librarian.dto.ReservationProcessRequest;
 import com.team.lms.librarian.dto.ReturnProcessRequest;
 import com.team.lms.librarian.service.LibrarianOperationsService;
 import com.team.lms.librarian.vo.FineManageVo;
+import com.team.lms.librarian.vo.LibrarianStatsDetailVo;
 import com.team.lms.librarian.vo.LibrarianStatsVo;
 import com.team.lms.librarian.vo.ReservationManageVo;
 import com.team.lms.librarian.vo.ReturnManageVo;

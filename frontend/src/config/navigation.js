@@ -11,6 +11,7 @@ export const roleMenus = {
   ],
   ADMIN: [
     { key: "admin-users", title: "Governance", hint: "用户、权限、日志" },
+    { key: "admin-logs", title: "Operation Logs", hint: "操作日志查询与导出" },
     { key: "admin-monitoring", title: "Monitoring", hint: "报表、备份、恢复、系统状态" },
   ],
 };
