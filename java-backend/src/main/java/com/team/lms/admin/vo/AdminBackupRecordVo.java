@@ -12,4 +12,5 @@ public class AdminBackupRecordVo {
     private String status;
     private String summary;
     private String createdAt;
+    private Boolean restorable;
 }
