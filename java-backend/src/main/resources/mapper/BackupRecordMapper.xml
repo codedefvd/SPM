@@ -21,6 +21,11 @@
         order by created_at desc, id desc
     </select>
 
+    <select id="selectById" resultMap="BackupRecordResultMap">
+        select * from backup_records
+        where id = #{id} and deleted = false
+    </select>
+
     <select id="selectLatest" resultMap="BackupRecordResultMap">
         select * from backup_records
         where deleted = false

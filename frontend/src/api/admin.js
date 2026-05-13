@@ -64,6 +64,12 @@ export const adminApi = {
   getMonitoringOverview(token) {
     return request("/admin/monitoring/overview", {}, token);
   },
+  getBusinessReport(token) {
+    return request("/admin/monitoring/reports", {}, token);
+  },
+  getRuntimeStatus(token) {
+    return request("/admin/monitoring/runtime-status", {}, token);
+  },
   listOperationLogs(token) {
     return request("/admin/monitoring/operation-logs", {}, token);
   },
@@ -75,5 +81,11 @@ export const adminApi = {
   },
   listBackupRecords(token) {
     return request("/admin/monitoring/backups", {}, token);
+  },
+  restoreBackup(backupId, token) {
+    return request("/admin/monitoring/backups/restore", {
+      method: "POST",
+      body: JSON.stringify({ backupId }),
+    }, token);
   },
 };

@@ -310,6 +310,10 @@ textarea {
   gap: 14px;
 }
 
+.stats-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .stat-card {
   padding: 16px;
   border-radius: 14px;
@@ -401,6 +405,27 @@ th {
 .monitor-card {
   display: grid;
   gap: 8px;
+}
+
+.metric-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+
+.metric-row span {
+  color: var(--secondary);
 }
 
 .empty-state {
