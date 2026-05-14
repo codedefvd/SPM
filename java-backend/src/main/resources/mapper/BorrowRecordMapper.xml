@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -149,9 +149,22 @@
         FROM borrow_records br
         JOIN books b ON br.book_id = b.id
         LEFT JOIN categories c ON b.category_id = c.id
-        WHERE br.status IN ('BORROWED', 'RETURNED', 'RETURN_PENDING')
+        WHERE br.deleted = false
         GROUP BY b.id, b.title, b.author, c.name
         ORDER BY borrowCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectPopularCategories" resultType="com.team.lms.mapper.BorrowRecordMapper$CategoryBorrowStat">
+        SELECT
+        COALESCE(c.name, 'Uncategorized') as categoryName,
+        COUNT(br.id) as borrowCount
+        FROM borrow_records br
+        JOIN books b ON br.book_id = b.id
+        LEFT JOIN categories c ON b.category_id = c.id
+        WHERE br.deleted = false
+        GROUP BY COALESCE(c.name, 'Uncategorized')
+        ORDER BY borrowCount DESC, categoryName ASC
         LIMIT #{limit}
     </select>
 
@@ -159,23 +172,57 @@
         <choose>
             <when test="groupBy == 'month'">
                 SELECT
-                DATE_FORMAT(borrow_date, '%Y-%m') as period,
-                COUNT(CASE WHEN borrow_date IS NOT NULL THEN 1 END) as borrowCount,
-                COUNT(CASE WHEN return_date IS NOT NULL THEN 1 END) as returnCount
-                FROM borrow_records
-                WHERE borrow_date IS NOT NULL
-                GROUP BY DATE_FORMAT(borrow_date, '%Y-%m')
+                period,
+                SUM(borrowCount) as borrowCount,
+                SUM(returnCount) as returnCount
+                FROM (
+                    SELECT
+                    DATE_FORMAT(borrow_date, '%Y-%m') as period,
+                    COUNT(*) as borrowCount,
+                    0 as returnCount
+                    FROM borrow_records
+                    WHERE deleted = false
+                      AND borrow_date IS NOT NULL
+                    GROUP BY DATE_FORMAT(borrow_date, '%Y-%m')
+                    UNION ALL
+                    SELECT
+                    DATE_FORMAT(return_date, '%Y-%m') as period,
+                    0 as borrowCount,
+                    COUNT(*) as returnCount
+                    FROM borrow_records
+                    WHERE deleted = false
+                      AND return_date IS NOT NULL
+                    GROUP BY DATE_FORMAT(return_date, '%Y-%m')
+                ) trend_stats
+                GROUP BY period
                 ORDER BY period DESC
                 LIMIT 12
             </when>
             <otherwise>
                 SELECT
-                CONCAT(YEARWEEK(borrow_date), '周') as period,
-                COUNT(CASE WHEN borrow_date IS NOT NULL THEN 1 END) as borrowCount,
-                COUNT(CASE WHEN return_date IS NOT NULL THEN 1 END) as returnCount
-                FROM borrow_records
-                WHERE borrow_date IS NOT NULL
-                GROUP BY YEARWEEK(borrow_date)
+                period,
+                SUM(borrowCount) as borrowCount,
+                SUM(returnCount) as returnCount
+                FROM (
+                    SELECT
+                    DATE_FORMAT(borrow_date, '%x-W%v') as period,
+                    COUNT(*) as borrowCount,
+                    0 as returnCount
+                    FROM borrow_records
+                    WHERE deleted = false
+                      AND borrow_date IS NOT NULL
+                    GROUP BY DATE_FORMAT(borrow_date, '%x-W%v')
+                    UNION ALL
+                    SELECT
+                    DATE_FORMAT(return_date, '%x-W%v') as period,
+                    0 as borrowCount,
+                    COUNT(*) as returnCount
+                    FROM borrow_records
+                    WHERE deleted = false
+                      AND return_date IS NOT NULL
+                    GROUP BY DATE_FORMAT(return_date, '%x-W%v')
+                ) trend_stats
+                GROUP BY period
                 ORDER BY period DESC
                 LIMIT 12
             </otherwise>

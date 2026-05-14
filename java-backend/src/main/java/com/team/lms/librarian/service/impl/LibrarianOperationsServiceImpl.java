@@ -35,10 +35,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -391,9 +394,12 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
         BigDecimal amount = fine == null ? BigDecimal.ZERO : fine.getAmount();
         return String.format("%s is overdue by %d day(s). Current fine: %s", reader, overdueDays, amount);
     }
+
     @Override
     public LibrarianStatsDetailVo getDetailedStatistics(String authorizationHeader, String periodType) {
+        String normalizedPeriodType = normalizePeriodType(periodType);
         LibrarianStatsVo basicStats = getStatistics(authorizationHeader);
+        List<BorrowRecord> allRecords = borrowRecordMapper.selectAll();
 
         List<LibrarianStatsDetailVo.PopularBookVo> popularBooks =
                 borrowRecordMapper.selectPopularBooks(10).stream()
@@ -406,9 +412,16 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                                 .build())
                         .toList();
 
-        String groupBy = "month".equalsIgnoreCase(periodType) ? "month" : "week";
+        List<LibrarianStatsDetailVo.CategoryBorrowVo> popularCategories =
+                borrowRecordMapper.selectPopularCategories(5).stream()
+                        .map(stat -> LibrarianStatsDetailVo.CategoryBorrowVo.builder()
+                                .categoryName(stat.getCategoryName())
+                                .borrowCount(stat.getBorrowCount())
+                                .build())
+                        .toList();
+
         List<LibrarianStatsDetailVo.BorrowTrendVo> borrowTrend =
-                borrowRecordMapper.selectBorrowTrend(groupBy).stream()
+                borrowRecordMapper.selectBorrowTrend(normalizedPeriodType).stream()
                         .map(stat -> LibrarianStatsDetailVo.BorrowTrendVo.builder()
                                 .period(stat.getPeriod())
                                 .borrowCount(stat.getBorrowCount())
@@ -418,8 +431,74 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
 
         return LibrarianStatsDetailVo.builder()
                 .basicStats(basicStats)
+                .periodSummary(buildPeriodSummary(allRecords, normalizedPeriodType))
                 .popularBooks(popularBooks)
+                .popularCategories(popularCategories)
                 .borrowTrend(borrowTrend)
                 .build();
+    }
+
+    private String normalizePeriodType(String periodType) {
+        return "week".equalsIgnoreCase(periodType) ? "week" : "month";
+    }
+
+    private LibrarianStatsDetailVo.PeriodSummaryVo buildPeriodSummary(List<BorrowRecord> records, String periodType) {
+        LocalDate today = LocalDate.now();
+        LocalDate start = "week".equals(periodType)
+                ? today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                : today.withDayOfMonth(1);
+        LocalDate end = "week".equals(periodType)
+                ? start.plusDays(6)
+                : today.with(TemporalAdjusters.lastDayOfMonth());
+
+        long borrowCount = records.stream()
+                .filter(record -> isDateWithinPeriod(record.getBorrowDate(), start, end))
+                .count();
+        long returnCount = records.stream()
+                .filter(record -> isDateWithinPeriod(record.getReturnDate(), start, end))
+                .count();
+        long overdueCount = records.stream()
+                .filter(record -> isOverdueWithinPeriod(record, start, end))
+                .count();
+        long activeReaderCount = records.stream()
+                .filter(record -> isDateWithinPeriod(record.getBorrowDate(), start, end))
+                .map(record -> record.getReader() == null ? null : record.getReader().getId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+
+        return LibrarianStatsDetailVo.PeriodSummaryVo.builder()
+                .label("week".equals(periodType) ? "This Week" : "This Month")
+                .borrowCount(borrowCount)
+                .returnCount(returnCount)
+                .overdueCount(overdueCount)
+                .activeReaderCount(activeReaderCount)
+                .returnRate(calculateRate(returnCount, borrowCount))
+                .overdueRate(calculateRate(overdueCount, borrowCount))
+                .build();
+    }
+
+    private boolean isDateWithinPeriod(LocalDate value, LocalDate start, LocalDate end) {
+        if (value == null) {
+            return false;
+        }
+        return !value.isBefore(start) && !value.isAfter(end);
+    }
+
+    private boolean isOverdueWithinPeriod(BorrowRecord record, LocalDate start, LocalDate end) {
+        if (record.getDueDate() == null || record.getDueDate().isBefore(start) || record.getDueDate().isAfter(end)) {
+            return false;
+        }
+        if (record.getReturnDate() != null) {
+            return record.getReturnDate().isAfter(record.getDueDate());
+        }
+        return LocalDate.now().isAfter(record.getDueDate());
+    }
+
+    private double calculateRate(long numerator, long denominator) {
+        if (denominator <= 0) {
+            return 0D;
+        }
+        return Math.round((numerator * 10000D) / denominator) / 100D;
     }
 }

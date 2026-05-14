@@ -22,6 +22,7 @@ export function LibrarianOperationsPage({ workspace }) {
   const [barcodeInput, setBarcodeInput] = useState("");
   const [scannedRecord, setScannedRecord] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState("month");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -43,7 +44,7 @@ export function LibrarianOperationsPage({ workspace }) {
     try {
       const [statistics, statisticsDetail, currentRows, overdueRows, returnRows, reservationRows, fineRows] = await Promise.all([
         librarianApi.getStatistics(workspace?.token),
-        librarianApi.getDetailedStatistics(workspace?.token, "month"),
+        librarianApi.getDetailedStatistics(workspace?.token, statsPeriod),
         canProcessReturns ? librarianApi.listCurrentBorrowings(workspace?.token) : Promise.resolve([]),
         canManageFines ? librarianApi.listOverdueBorrowings(workspace?.token) : Promise.resolve([]),
         canProcessReturns ? librarianApi.listReturnRequests(workspace?.token) : Promise.resolve([]),
@@ -66,7 +67,7 @@ export function LibrarianOperationsPage({ workspace }) {
 
   useEffect(() => {
     loadData();
-  }, [workspace?.token, hasOperationsAccess, canProcessReturns, canProcessReservations, canManageFines]);
+  }, [workspace?.token, hasOperationsAccess, canProcessReturns, canProcessReservations, canManageFines, statsPeriod]);
 
   async function handleBarcodeLookup() {
     if (!canProcessReturns) {
@@ -148,6 +149,10 @@ export function LibrarianOperationsPage({ workspace }) {
     } catch (requestError) {
       setError(requestError.message || "Failed to update fine");
     }
+  }
+
+  function formatRate(value) {
+    return `${Number(value || 0).toFixed(2)}%`;
   }
 
   return (
@@ -437,7 +442,28 @@ export function LibrarianOperationsPage({ workspace }) {
           ) : null}
 
           <section className="page-card">
-            <h3 className="section-title">Borrowing Statistics</h3>
+            <div className="section-head compact">
+              <div>
+                <h3 className="section-title">Borrowing Statistics</h3>
+                <p className="page-note">Track recent borrowing volume, return performance, and hot categories for replenishment decisions.</p>
+              </div>
+              <div className="inline-actions" style={{ marginBottom: 0 }}>
+                <select value={statsPeriod} onChange={(event) => setStatsPeriod(event.target.value)}>
+                  <option value="month">This Month</option>
+                  <option value="week">This Week</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="stats-grid">
+              <StatCard label={`${details?.periodSummary?.label || "Current Period"} Borrowings`} value={details?.periodSummary?.borrowCount ?? 0} />
+              <StatCard label={`${details?.periodSummary?.label || "Current Period"} Returns`} value={details?.periodSummary?.returnCount ?? 0} />
+              <StatCard label={`${details?.periodSummary?.label || "Current Period"} Overdues`} value={details?.periodSummary?.overdueCount ?? 0} />
+              <StatCard label="Active Readers" value={details?.periodSummary?.activeReaderCount ?? 0} />
+              <StatCard label="Return Rate" value={formatRate(details?.periodSummary?.returnRate)} />
+              <StatCard label="Overdue Rate" value={formatRate(details?.periodSummary?.overdueRate)} />
+            </div>
+
             <div className="split-grid">
               <div>
                 <h4 className="section-title">Popular Books</h4>
@@ -466,28 +492,53 @@ export function LibrarianOperationsPage({ workspace }) {
                 </div>
               </div>
               <div>
-                <h4 className="section-title">Borrowing Trend</h4>
+                <h4 className="section-title">Top Categories</h4>
                 <div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
-                        <th>Period</th>
+                        <th>Category</th>
                         <th>Borrow Count</th>
-                        <th>Return Count</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(details?.borrowTrend || []).map((item) => (
-                        <tr key={item.period}>
-                          <td>{item.period}</td>
+                      {(details?.popularCategories || []).map((item) => (
+                        <tr key={item.categoryName}>
+                          <td>{item.categoryName || "-"}</td>
                           <td>{item.borrowCount}</td>
-                          <td>{item.returnCount}</td>
                         </tr>
                       ))}
-                      {!loading && (!details?.borrowTrend || details.borrowTrend.length === 0) ? <tr><td colSpan="3">No borrowing trend data.</td></tr> : null}
+                      {!loading && (!details?.popularCategories || details.popularCategories.length === 0) ? <tr><td colSpan="2">No category borrowing data.</td></tr> : null}
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "18px" }}>
+              <h4 className="section-title">Borrowing Trend</h4>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Period</th>
+                      <th>Borrow Count</th>
+                      <th>Return Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(details?.borrowTrend || []).map((item) => (
+                      <tr key={item.period}>
+                        <td>{item.period}</td>
+                        <td>{item.borrowCount}</td>
+                        <td>{item.returnCount}</td>
+                      </tr>
+                    ))}
+                    {!loading && (!details?.borrowTrend || details.borrowTrend.length === 0) ? (
+                      <tr><td colSpan="3">No borrowing trend data.</td></tr>
+                    ) : null}
+                    </tbody>
+                </table>
               </div>
             </div>
           </section>

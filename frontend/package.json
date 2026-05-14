@@ -15,6 +15,7 @@
     "react-router-dom": "^7.14.0"
   },
   "devDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.60.3",
     "@vitejs/plugin-react": "4.3.1",
     "vite": "5.4.10"
   }

@@ -15,6 +15,7 @@ public interface BorrowRecordMapper {
     List<BorrowRecord> selectReturnPendingRecords();
 
     List<PopularBookStat> selectPopularBooks(@Param("limit") int limit);
+    List<CategoryBorrowStat> selectPopularCategories(@Param("limit") int limit);
     List<BorrowTrendStat> selectBorrowTrend(@Param("groupBy") String groupBy);
 
     class PopularBookStat {
@@ -47,5 +48,15 @@ public interface BorrowRecordMapper {
         public void setBorrowCount(Long borrowCount) { this.borrowCount = borrowCount; }
         public Long getReturnCount() { return returnCount; }
         public void setReturnCount(Long returnCount) { this.returnCount = returnCount; }
+    }
+
+    class CategoryBorrowStat {
+        private String categoryName;
+        private Long borrowCount;
+
+        public String getCategoryName() { return categoryName; }
+        public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+        public Long getBorrowCount() { return borrowCount; }
+        public void setBorrowCount(Long borrowCount) { this.borrowCount = borrowCount; }
     }
 }

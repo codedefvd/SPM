@@ -2,15 +2,28 @@ package com.team.lms.librarian.vo;
 
 import lombok.Builder;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.util.List;
 
 @Data
 @Builder
 public class LibrarianStatsDetailVo {
     private LibrarianStatsVo basicStats;
+    private PeriodSummaryVo periodSummary;
     private List<PopularBookVo> popularBooks;
+    private List<CategoryBorrowVo> popularCategories;
     private List<BorrowTrendVo> borrowTrend;
+
+    @Data
+    @Builder
+    public static class PeriodSummaryVo {
+        private String label;
+        private Long borrowCount;
+        private Long returnCount;
+        private Long overdueCount;
+        private Long activeReaderCount;
+        private Double returnRate;
+        private Double overdueRate;
+    }
 
     @Data
     @Builder
@@ -20,6 +33,13 @@ public class LibrarianStatsDetailVo {
         private String author;
         private Long borrowCount;
         private String categoryName;
+    }
+
+    @Data
+    @Builder
+    public static class CategoryBorrowVo {
+        private String categoryName;
+        private Long borrowCount;
     }
 
     @Data
