@@ -1,6 +1,6 @@
 package com.team.lms.librarian.service;
 
-import com.team.lms.librarian.dto.FineStatusUpdateRequest;
+import com.team.lms.librarian.dto.FineUpdateRequest;
 import com.team.lms.librarian.dto.ReservationProcessRequest;
 import com.team.lms.librarian.dto.ReturnProcessRequest;
 import com.team.lms.librarian.vo.BorrowingRecordManageVo;
@@ -22,8 +22,8 @@ public interface LibrarianOperationsService {
     List<ReservationManageVo> listReservations(String authorizationHeader);
     ReservationManageVo processReservation(String authorizationHeader, Long reservationId, ReservationProcessRequest request);
 
-    List<FineManageVo> listFines(String authorizationHeader);
-    FineManageVo updateFineStatus(String authorizationHeader, Long fineId, FineStatusUpdateRequest request);
+    List<FineManageVo> listFines(String authorizationHeader, String status, String keyword);
+    FineManageVo updateFine(String authorizationHeader, Long fineId, FineUpdateRequest request);
 
     LibrarianStatsVo getStatistics(String authorizationHeader);
     LibrarianStatsDetailVo getDetailedStatistics(String authorizationHeader, String periodType);

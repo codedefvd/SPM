@@ -14,6 +14,8 @@ public class FineManageVo {
     private String copyBarcode;
     private Long readerId;
     private String readerUsername;
+    private String dueDate;
+    private Long overdueDays;
     private BigDecimal amount;
     private String status;
 }

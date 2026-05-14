@@ -17,6 +17,8 @@
         </association>
         <association property="borrowRecord" javaType="com.team.lms.entity.BorrowRecord">
             <id property="id" column="borrow_record_id"/>
+            <result property="dueDate" column="due_date"/>
+            <result property="returnDate" column="return_date"/>
             <association property="book" javaType="com.team.lms.entity.Book">
                 <id property="id" column="book_id"/>
                 <result property="title" column="book_title"/>
@@ -31,7 +33,7 @@
     <sql id="FineColumns">
         f.id, f.reader_id, f.borrow_record_id, f.amount, f.status, f.created_at, f.updated_at, f.deleted,
         u.username as reader_username,
-        br.book_id, br.book_copy_id,
+        br.book_id, br.book_copy_id, br.due_date, br.return_date,
         b.title as book_title,
         bc.barcode as copy_barcode
     </sql>
@@ -55,6 +57,35 @@
         left join book_copies bc on br.book_copy_id = bc.id
         where f.deleted = false
         order by f.id desc
+    </select>
+
+    <select id="selectByFilters" resultMap="FineResultMap">
+        select <include refid="FineColumns"/>
+        from fines f
+        join users u on f.reader_id = u.id
+        join borrow_records br on f.borrow_record_id = br.id
+        join books b on br.book_id = b.id
+        left join book_copies bc on br.book_copy_id = bc.id
+        where f.deleted = false
+        <if test="status != null and status != ''">
+            and f.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (
+                lower(u.username) like #{keyword}
+                or lower(b.title) like #{keyword}
+                or lower(coalesce(bc.barcode, '')) like #{keyword}
+                or cast(f.borrow_record_id as char) like #{keyword}
+            )
+        </if>
+        order by
+            case
+                when f.status = 'UNPAID' then 0
+                when f.status = 'WAIVED' then 1
+                else 2
+            end,
+            f.updated_at desc,
+            f.id desc
     </select>
 
     <select id="selectUnpaid" resultMap="FineResultMap">

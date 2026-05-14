@@ -1,4 +1,4 @@
-﻿import { request } from "./base";
+import { request } from "./base";
 
 export const librarianApi = {
   lookupBookByIsbn(token, isbn) {
@@ -71,11 +71,19 @@ export const librarianApi = {
   processReservation(token, reservationId, payload) {
     return request(`/librarian/reservations/${reservationId}/process`, { method: "POST", body: JSON.stringify(payload) }, token);
   },
-  listFines(token) {
-    return request("/librarian/fines", {}, token);
+  listFines(token, filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.status && filters.status !== "ALL") {
+      params.set("status", filters.status);
+    }
+    if (filters.keyword) {
+      params.set("keyword", filters.keyword);
+    }
+    const query = params.toString();
+    return request(`/librarian/fines${query ? `?${query}` : ""}`, {}, token);
   },
-  updateFineStatus(token, fineId, payload) {
-    return request(`/librarian/fines/${fineId}/status`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+  updateFine(token, fineId, payload) {
+    return request(`/librarian/fines/${fineId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
   },
   getStatistics(token) {
     return request("/librarian/statistics", {}, token);

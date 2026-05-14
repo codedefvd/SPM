@@ -2,7 +2,7 @@ package com.team.lms.librarian.controller;
 
 import com.team.lms.common.api.ApiResponse;
 import com.team.lms.common.api.BaseController;
-import com.team.lms.librarian.dto.FineStatusUpdateRequest;
+import com.team.lms.librarian.dto.FineUpdateRequest;
 import com.team.lms.librarian.dto.ReservationProcessRequest;
 import com.team.lms.librarian.dto.ReturnProcessRequest;
 import com.team.lms.librarian.vo.BorrowingRecordManageVo;
@@ -81,18 +81,20 @@ public class LibrarianOperationsController extends BaseController {
 
     @GetMapping("/fines")
     public ApiResponse<List<FineManageVo>> listFines(
-            @RequestHeader("Authorization") String authorizationHeader
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return success(librarianOperationsService.listFines(authorizationHeader));
+        return success(librarianOperationsService.listFines(authorizationHeader, status, keyword));
     }
 
-    @PatchMapping("/fines/{fineId}/status")
-    public ApiResponse<FineManageVo> updateFineStatus(
+    @PatchMapping("/fines/{fineId}")
+    public ApiResponse<FineManageVo> updateFine(
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable Long fineId,
-            @Valid @RequestBody FineStatusUpdateRequest request
+            @Valid @RequestBody FineUpdateRequest request
     ) {
-        return success(librarianOperationsService.updateFineStatus(authorizationHeader, fineId, request));
+        return success(librarianOperationsService.updateFine(authorizationHeader, fineId, request));
     }
 
     @GetMapping("/statistics")

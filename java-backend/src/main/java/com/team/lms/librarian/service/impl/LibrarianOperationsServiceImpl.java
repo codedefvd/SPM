@@ -13,7 +13,7 @@ import com.team.lms.entity.Fine;
 import com.team.lms.entity.Inventory;
 import com.team.lms.entity.Reservation;
 import com.team.lms.exception.BusinessException;
-import com.team.lms.librarian.dto.FineStatusUpdateRequest;
+import com.team.lms.librarian.dto.FineUpdateRequest;
 import com.team.lms.librarian.dto.ReservationProcessRequest;
 import com.team.lms.librarian.dto.ReturnProcessRequest;
 import com.team.lms.librarian.service.LibrarianOperationsService;
@@ -202,23 +202,32 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
     }
 
     @Override
-    public List<FineManageVo> listFines(String authorizationHeader) {
+    public List<FineManageVo> listFines(String authorizationHeader, String status, String keyword) {
         permissionScopeSupport.requirePermission(authorizationHeader, RoleType.LIBRARIAN, "FINE_MANAGE");
-        return fineMapper.selectAll().stream().map(this::toFineVo).toList();
+        String normalizedStatus = normalizeFineStatusValue(status);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        return fineMapper.selectByFilters(normalizedStatus, normalizedKeyword).stream()
+                .map(this::toFineVo)
+                .toList();
     }
 
     @Override
     @Transactional
-    public FineManageVo updateFineStatus(String authorizationHeader, Long fineId, FineStatusUpdateRequest request) {
+    public FineManageVo updateFine(String authorizationHeader, Long fineId, FineUpdateRequest request) {
         permissionScopeSupport.requirePermission(authorizationHeader, RoleType.LIBRARIAN, "FINE_MANAGE");
         Fine fine = fineMapper.selectById(fineId);
         if (fine == null) {
             throw new BusinessException(404, "fine not found");
         }
-        try {
-            fine.setStatus(FineStatus.valueOf(request.getStatus().trim().toUpperCase(Locale.ROOT)));
-        } catch (IllegalArgumentException ex) {
-            throw new BusinessException(400, "fine status must be UNPAID/PAID/WAIVED");
+        if (request.getAmount() == null && (request.getStatus() == null || request.getStatus().isBlank())) {
+            throw new BusinessException(400, "status or amount is required");
+        }
+
+        if (request.getAmount() != null) {
+            fine.setAmount(request.getAmount());
+        }
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            fine.setStatus(parseFineStatus(request.getStatus()));
         }
         fineMapper.update(fine);
         return toFineVo(fineMapper.selectById(fineId));
@@ -307,6 +316,7 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
     }
 
     private FineManageVo toFineVo(Fine fine) {
+        LocalDate dueDate = fine.getBorrowRecord() == null ? null : fine.getBorrowRecord().getDueDate();
         return FineManageVo.builder()
                 .fineId(fine.getId())
                 .recordId(fine.getBorrowRecord() == null ? null : fine.getBorrowRecord().getId())
@@ -314,6 +324,8 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .copyBarcode(fine.getBorrowRecord() == null || fine.getBorrowRecord().getBookCopy() == null ? null : fine.getBorrowRecord().getBookCopy().getBarcode())
                 .readerId(fine.getReader() == null ? null : fine.getReader().getId())
                 .readerUsername(fine.getReader() == null ? null : fine.getReader().getUsername())
+                .dueDate(dueDate == null ? null : dueDate.toString())
+                .overdueDays(calculateFineOverdueDays(fine))
                 .amount(fine.getAmount())
                 .status(fine.getStatus() == null ? null : fine.getStatus().name())
                 .build();
@@ -391,6 +403,43 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
         BigDecimal amount = fine == null ? BigDecimal.ZERO : fine.getAmount();
         return String.format("%s is overdue by %d day(s). Current fine: %s", reader, overdueDays, amount);
     }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+        return "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+    }
+
+    private String normalizeFineStatusValue(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        return parseFineStatus(status).name();
+    }
+
+    private FineStatus parseFineStatus(String status) {
+        try {
+            return FineStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException(400, "fine status must be UNPAID/PAID/WAIVED");
+        }
+    }
+
+    private long calculateFineOverdueDays(Fine fine) {
+        if (fine == null || fine.getBorrowRecord() == null || fine.getBorrowRecord().getDueDate() == null) {
+            return 0;
+        }
+        LocalDate dueDate = fine.getBorrowRecord().getDueDate();
+        LocalDate endDate = fine.getBorrowRecord().getReturnDate() == null
+                ? LocalDate.now()
+                : fine.getBorrowRecord().getReturnDate();
+        if (!endDate.isAfter(dueDate)) {
+            return 0;
+        }
+        return ChronoUnit.DAYS.between(dueDate, endDate);
+    }
+
     @Override
     public LibrarianStatsDetailVo getDetailedStatistics(String authorizationHeader, String periodType) {
         LibrarianStatsVo basicStats = getStatistics(authorizationHeader);
