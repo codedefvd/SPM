@@ -22,6 +22,8 @@ import com.team.lms.librarian.vo.FineManageVo;
 import com.team.lms.librarian.vo.LibrarianStatsDetailVo;
 import com.team.lms.librarian.vo.LibrarianStatsVo;
 import com.team.lms.librarian.vo.ReservationManageVo;
+import com.team.lms.librarian.vo.ReturnReminderSummaryVo;
+import com.team.lms.librarian.vo.ReturnReminderVo;
 import com.team.lms.librarian.vo.ReturnManageVo;
 import com.team.lms.mapper.BookCopyMapper;
 import com.team.lms.mapper.BookMapper;
@@ -37,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -74,6 +77,52 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .map(this::ensureOverdueFine)
                 .map(this::toBorrowingRecordVo)
                 .toList();
+    }
+
+    @Override
+    public List<ReturnReminderVo> listReturnReminders(String authorizationHeader) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.LIBRARIAN,
+                List.of("REQUEST_PROCESS", "FINE_MANAGE")
+        );
+        int reminderWindowDays = systemConfigSupport.getReturnReminderLeadDays();
+        return borrowRecordMapper.selectAll().stream()
+                .filter(this::isReminderCandidate)
+                .filter(record -> isOverdueRecord(record) || isDueSoonRecord(record, reminderWindowDays))
+                .map(this::toReturnReminderVo)
+                .sorted(this::compareReminderPriority)
+                .toList();
+    }
+
+    @Override
+    public ReturnReminderSummaryVo getReturnReminderSummary(String authorizationHeader) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.LIBRARIAN,
+                List.of("REQUEST_PROCESS", "FINE_MANAGE")
+        );
+        int reminderWindowDays = systemConfigSupport.getReturnReminderLeadDays();
+        List<BorrowRecord> reminderCandidates = borrowRecordMapper.selectAll().stream()
+                .filter(this::isReminderCandidate)
+                .toList();
+        int dueSoonCount = (int) reminderCandidates.stream()
+                .filter(record -> isDueSoonRecord(record, reminderWindowDays))
+                .count();
+        int dueTodayCount = (int) reminderCandidates.stream()
+                .filter(this::isDueTodayRecord)
+                .count();
+        int overdueCount = (int) reminderCandidates.stream()
+                .filter(this::isOverdueRecord)
+                .count();
+
+        return ReturnReminderSummaryVo.builder()
+                .reminderWindowDays(reminderWindowDays)
+                .totalReminderCount(dueSoonCount + overdueCount)
+                .dueSoonCount(dueSoonCount)
+                .dueTodayCount(dueTodayCount)
+                .overdueCount(overdueCount)
+                .build();
     }
 
     @Override
@@ -256,6 +305,27 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .build();
     }
 
+    private int compareReminderPriority(ReturnReminderVo left, ReturnReminderVo right) {
+        int typeCompare = Comparator
+                .comparing((ReturnReminderVo item) -> "OVERDUE".equals(item.getReminderType()) ? 0 : 1)
+                .compare(left, right);
+        if (typeCompare != 0) {
+            return typeCompare;
+        }
+        if ("OVERDUE".equals(left.getReminderType())) {
+            int overdueCompare = Long.compare(safeLong(right.getOverdueDays()), safeLong(left.getOverdueDays()));
+            if (overdueCompare != 0) {
+                return overdueCompare;
+            }
+        } else {
+            int dueSoonCompare = Long.compare(safeLong(left.getDaysUntilDue()), safeLong(right.getDaysUntilDue()));
+            if (dueSoonCompare != 0) {
+                return dueSoonCompare;
+            }
+        }
+        return Comparator.nullsLast(String::compareTo).compare(left.getDueDate(), right.getDueDate());
+    }
+
     private Fine upsertFine(BorrowRecord record, BigDecimal amount, FineStatus status) {
         Fine existing = findFineByRecordId(record.getId());
         if (existing == null) {
@@ -357,6 +427,30 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .build();
     }
 
+    private ReturnReminderVo toReturnReminderVo(BorrowRecord record) {
+        long overdueDays = calculateOverdueDays(record);
+        Long daysUntilDue = overdueDays > 0 ? null : calculateDaysUntilDue(record);
+        Fine fine = overdueDays > 0 ? ensureFineLoaded(record) : findFineByRecordId(record.getId());
+        return ReturnReminderVo.builder()
+                .recordId(record.getId())
+                .bookId(record.getBook() == null ? null : record.getBook().getId())
+                .bookTitle(record.getBook() == null ? null : record.getBook().getTitle())
+                .copyBarcode(record.getBookCopy() == null ? null : record.getBookCopy().getBarcode())
+                .readerId(record.getReader() == null ? null : record.getReader().getId())
+                .readerUsername(record.getReader() == null ? null : record.getReader().getUsername())
+                .recordStatus(record.getStatus() == null ? null : record.getStatus().name())
+                .reminderType(overdueDays > 0 ? "OVERDUE" : "DUE_SOON")
+                .borrowDate(record.getBorrowDate() == null ? null : record.getBorrowDate().toString())
+                .dueDate(record.getDueDate() == null ? null : record.getDueDate().toString())
+                .daysUntilDue(daysUntilDue)
+                .overdueDays(overdueDays > 0 ? overdueDays : null)
+                .fineAmount(fine == null ? BigDecimal.ZERO : fine.getAmount())
+                .fineStatus(fine == null || fine.getStatus() == null ? FineStatus.UNPAID.name() : fine.getStatus().name())
+                .reminderInfo(buildReturnReminderInfo(record, overdueDays, daysUntilDue, fine))
+                .recommendedAction(overdueDays > 0 ? "Contact reader and follow up on return" : "Send a due-date reminder")
+                .build();
+    }
+
     private Fine ensureFineLoaded(BorrowRecord record) {
         long overdueDays = calculateOverdueDays(record);
         if (overdueDays <= 0) {
@@ -370,10 +464,34 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
         if (record.getDueDate() == null) {
             return false;
         }
-        if (record.getStatus() == BorrowRecordStatus.RETURNED) {
+        if (!isActiveBorrowRecord(record)) {
             return false;
         }
         return LocalDate.now().isAfter(record.getDueDate());
+    }
+
+    private boolean isDueSoonRecord(BorrowRecord record, int reminderWindowDays) {
+        if (!isReminderCandidate(record)) {
+            return false;
+        }
+        LocalDate today = LocalDate.now();
+        LocalDate dueDate = record.getDueDate();
+        LocalDate deadline = today.plusDays(Math.max(reminderWindowDays, 0));
+        return !dueDate.isBefore(today) && !dueDate.isAfter(deadline);
+    }
+
+    private boolean isDueTodayRecord(BorrowRecord record) {
+        return isReminderCandidate(record) && LocalDate.now().equals(record.getDueDate());
+    }
+
+    private boolean isReminderCandidate(BorrowRecord record) {
+        return record.getDueDate() != null && isActiveBorrowRecord(record);
+    }
+
+    private boolean isActiveBorrowRecord(BorrowRecord record) {
+        return record.getStatus() == BorrowRecordStatus.BORROWED
+                || record.getStatus() == BorrowRecordStatus.RETURN_PENDING
+                || record.getStatus() == BorrowRecordStatus.OVERDUE;
     }
 
     private long calculateOverdueDays(BorrowRecord record) {
@@ -381,6 +499,13 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
             return 0;
         }
         return Math.max(0, ChronoUnit.DAYS.between(record.getDueDate(), LocalDate.now()));
+    }
+
+    private Long calculateDaysUntilDue(BorrowRecord record) {
+        if (!isReminderCandidate(record) || record.getDueDate().isBefore(LocalDate.now())) {
+            return null;
+        }
+        return ChronoUnit.DAYS.between(LocalDate.now(), record.getDueDate());
     }
 
     private String buildReminderInfo(BorrowRecord record, long overdueDays, Fine fine) {
@@ -391,6 +516,26 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
         BigDecimal amount = fine == null ? BigDecimal.ZERO : fine.getAmount();
         return String.format("%s is overdue by %d day(s). Current fine: %s", reader, overdueDays, amount);
     }
+
+    private String buildReturnReminderInfo(BorrowRecord record, long overdueDays, Long daysUntilDue, Fine fine) {
+        String reader = record.getReader() == null ? "Reader" : record.getReader().getUsername();
+        if (overdueDays > 0) {
+            BigDecimal amount = fine == null ? BigDecimal.ZERO : fine.getAmount();
+            return String.format("%s is overdue by %d day(s). Current fine: %s", reader, overdueDays, amount);
+        }
+        if (daysUntilDue == null) {
+            return "No reminder needed";
+        }
+        if (daysUntilDue == 0) {
+            return String.format("%s should return the book today.", reader);
+        }
+        return String.format("%s should return the book within %d day(s).", reader, daysUntilDue);
+    }
+
+    private long safeLong(Long value) {
+        return value == null ? Long.MAX_VALUE : value;
+    }
+
     @Override
     public LibrarianStatsDetailVo getDetailedStatistics(String authorizationHeader, String periodType) {
         LibrarianStatsVo basicStats = getStatistics(authorizationHeader);

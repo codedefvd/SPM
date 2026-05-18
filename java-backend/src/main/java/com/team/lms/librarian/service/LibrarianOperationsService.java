@@ -8,6 +8,8 @@ import com.team.lms.librarian.vo.FineManageVo;
 import com.team.lms.librarian.vo.LibrarianStatsDetailVo;
 import com.team.lms.librarian.vo.LibrarianStatsVo;
 import com.team.lms.librarian.vo.ReservationManageVo;
+import com.team.lms.librarian.vo.ReturnReminderSummaryVo;
+import com.team.lms.librarian.vo.ReturnReminderVo;
 import com.team.lms.librarian.vo.ReturnManageVo;
 
 import java.util.List;
@@ -15,6 +17,8 @@ import java.util.List;
 public interface LibrarianOperationsService {
     List<BorrowingRecordManageVo> listCurrentBorrowings(String authorizationHeader);
     List<BorrowingRecordManageVo> listOverdueBorrowings(String authorizationHeader);
+    List<ReturnReminderVo> listReturnReminders(String authorizationHeader);
+    ReturnReminderSummaryVo getReturnReminderSummary(String authorizationHeader);
     List<ReturnManageVo> listPendingReturns(String authorizationHeader);
     ReturnManageVo getActiveBorrowByBarcode(String authorizationHeader, String barcode);
     ReturnManageVo processReturn(String authorizationHeader, Long recordId, ReturnProcessRequest request);

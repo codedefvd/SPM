@@ -25,6 +25,10 @@ public class SystemConfigSupport {
         return getDecimalValue("OVERDUE_FINE_PER_DAY", new BigDecimal("1.00"));
     }
 
+    public int getReturnReminderLeadDays() {
+        return getIntValue("RETURN_REMINDER_LEAD_DAYS", 3);
+    }
+
     private int getIntValue(String key, int defaultValue) {
         SystemConfig config = systemConfigMapper.selectByKey(key);
         if (config == null || config.getConfigValue() == null || config.getConfigValue().isBlank()) {

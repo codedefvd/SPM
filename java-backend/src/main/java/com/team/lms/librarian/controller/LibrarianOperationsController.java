@@ -11,6 +11,8 @@ import com.team.lms.librarian.vo.FineManageVo;
 import com.team.lms.librarian.vo.LibrarianStatsDetailVo;
 import com.team.lms.librarian.vo.LibrarianStatsVo;
 import com.team.lms.librarian.vo.ReservationManageVo;
+import com.team.lms.librarian.vo.ReturnReminderSummaryVo;
+import com.team.lms.librarian.vo.ReturnReminderVo;
 import com.team.lms.librarian.vo.ReturnManageVo;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,20 @@ public class LibrarianOperationsController extends BaseController {
             @RequestHeader("Authorization") String authorizationHeader
     ) {
         return success(librarianOperationsService.listOverdueBorrowings(authorizationHeader));
+    }
+
+    @GetMapping("/borrow-records/reminders")
+    public ApiResponse<List<ReturnReminderVo>> listReturnReminders(
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        return success(librarianOperationsService.listReturnReminders(authorizationHeader));
+    }
+
+    @GetMapping("/borrow-records/reminders/summary")
+    public ApiResponse<ReturnReminderSummaryVo> getReturnReminderSummary(
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        return success(librarianOperationsService.getReturnReminderSummary(authorizationHeader));
     }
 
     @GetMapping("/borrow-records/by-barcode")

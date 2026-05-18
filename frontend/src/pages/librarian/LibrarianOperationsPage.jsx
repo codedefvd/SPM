@@ -6,13 +6,20 @@ import Barcode from "../../components/Barcode";
 export function LibrarianOperationsPage({ workspace }) {
   const permissionsLoaded = Array.isArray(workspace?.permissions);
   const permissions = permissionsLoaded ? workspace.permissions : [];
-  const canProcessReturns = !permissionsLoaded || permissions.includes("REQUEST_PROCESS");
-  const canProcessReservations = !permissionsLoaded || permissions.includes("RESERVATION_PROCESS");
-  const canManageFines = !permissionsLoaded || permissions.includes("FINE_MANAGE");
-  const hasOperationsAccess = canProcessReturns || canProcessReservations || canManageFines;
+  const canProcessReturns =
+    !permissionsLoaded || permissions.includes("REQUEST_PROCESS");
+  const canProcessReservations =
+    !permissionsLoaded || permissions.includes("RESERVATION_PROCESS");
+  const canManageFines =
+    !permissionsLoaded || permissions.includes("FINE_MANAGE");
+  const canViewReminders = canProcessReturns || canManageFines;
+  const hasOperationsAccess =
+    canProcessReturns || canProcessReservations || canManageFines;
 
   const [stats, setStats] = useState(null);
   const [details, setDetails] = useState(null);
+  const [reminderSummary, setReminderSummary] = useState(null);
+  const [returnReminders, setReturnReminders] = useState([]);
   const [currentBorrowings, setCurrentBorrowings] = useState([]);
   const [overdueBorrowings, setOverdueBorrowings] = useState([]);
   const [returns, setReturns] = useState([]);
@@ -29,6 +36,8 @@ export function LibrarianOperationsPage({ workspace }) {
     if (!hasOperationsAccess) {
       setStats(null);
       setDetails(null);
+      setReminderSummary(null);
+      setReturnReminders([]);
       setCurrentBorrowings([]);
       setOverdueBorrowings([]);
       setReturns([]);
@@ -41,17 +50,45 @@ export function LibrarianOperationsPage({ workspace }) {
     setLoading(true);
     setError("");
     try {
-      const [statistics, statisticsDetail, currentRows, overdueRows, returnRows, reservationRows, fineRows] = await Promise.all([
+      const [
+        statistics,
+        statisticsDetail,
+        reminderSummaryData,
+        reminderRows,
+        currentRows,
+        overdueRows,
+        returnRows,
+        reservationRows,
+        fineRows,
+      ] = await Promise.all([
         librarianApi.getStatistics(workspace?.token),
         librarianApi.getDetailedStatistics(workspace?.token, "month"),
-        canProcessReturns ? librarianApi.listCurrentBorrowings(workspace?.token) : Promise.resolve([]),
-        canManageFines ? librarianApi.listOverdueBorrowings(workspace?.token) : Promise.resolve([]),
-        canProcessReturns ? librarianApi.listReturnRequests(workspace?.token) : Promise.resolve([]),
-        canProcessReservations ? librarianApi.listReservations(workspace?.token) : Promise.resolve([]),
-        canManageFines ? librarianApi.listFines(workspace?.token) : Promise.resolve([]),
+        canViewReminders
+          ? librarianApi.getReturnReminderSummary(workspace?.token)
+          : Promise.resolve(null),
+        canViewReminders
+          ? librarianApi.listReturnReminders(workspace?.token)
+          : Promise.resolve([]),
+        canProcessReturns
+          ? librarianApi.listCurrentBorrowings(workspace?.token)
+          : Promise.resolve([]),
+        canManageFines
+          ? librarianApi.listOverdueBorrowings(workspace?.token)
+          : Promise.resolve([]),
+        canProcessReturns
+          ? librarianApi.listReturnRequests(workspace?.token)
+          : Promise.resolve([]),
+        canProcessReservations
+          ? librarianApi.listReservations(workspace?.token)
+          : Promise.resolve([]),
+        canManageFines
+          ? librarianApi.listFines(workspace?.token)
+          : Promise.resolve([]),
       ]);
       setStats(statistics || {});
       setDetails(statisticsDetail || null);
+      setReminderSummary(reminderSummaryData || null);
+      setReturnReminders(reminderRows || []);
       setCurrentBorrowings(currentRows || []);
       setOverdueBorrowings(overdueRows || []);
       setReturns(returnRows || []);
@@ -66,7 +103,14 @@ export function LibrarianOperationsPage({ workspace }) {
 
   useEffect(() => {
     loadData();
-  }, [workspace?.token, hasOperationsAccess, canProcessReturns, canProcessReservations, canManageFines]);
+  }, [
+    workspace?.token,
+    hasOperationsAccess,
+    canViewReminders,
+    canProcessReturns,
+    canProcessReservations,
+    canManageFines,
+  ]);
 
   async function handleBarcodeLookup() {
     if (!canProcessReturns) {
@@ -82,7 +126,10 @@ export function LibrarianOperationsPage({ workspace }) {
     setError("");
     setScannedRecord(null);
     try {
-      const result = await librarianApi.lookupByBarcode(workspace?.token, barcodeInput.trim());
+      const result = await librarianApi.lookupByBarcode(
+        workspace?.token,
+        barcodeInput.trim(),
+      );
       setScannedRecord(result);
       setMessage("Active borrow record found.");
     } catch (requestError) {
@@ -109,7 +156,9 @@ export function LibrarianOperationsPage({ workspace }) {
       await librarianApi.processReturnRequest(workspace?.token, recordId, {
         approve,
         fineAmount: approve ? 0 : undefined,
-        rejectReason: approve ? undefined : "return request rejected by librarian",
+        rejectReason: approve
+          ? undefined
+          : "return request rejected by librarian",
       });
       setMessage(`Return #${recordId} ${approve ? "approved" : "rejected"}.`);
       await loadData();
@@ -126,8 +175,12 @@ export function LibrarianOperationsPage({ workspace }) {
     setMessage("");
     setError("");
     try {
-      await librarianApi.processReservation(workspace?.token, reservationId, { action });
-      setMessage(`Reservation #${reservationId} ${action.toLowerCase()} completed.`);
+      await librarianApi.processReservation(workspace?.token, reservationId, {
+        action,
+      });
+      setMessage(
+        `Reservation #${reservationId} ${action.toLowerCase()} completed.`,
+      );
       await loadData();
     } catch (requestError) {
       setError(requestError.message || "Failed to process reservation");
@@ -161,8 +214,22 @@ export function LibrarianOperationsPage({ workspace }) {
         </div>
 
         <div className="stats-grid">
-          <StatCard label="Current Borrowings" value={stats?.activeBorrows ?? 0} />
-          <StatCard label="Pending Reservations" value={stats?.pendingReservations ?? 0} />
+          <StatCard
+            label="Current Borrowings"
+            value={stats?.activeBorrows ?? 0}
+          />
+          <StatCard
+            label="Due Soon Reminders"
+            value={reminderSummary?.dueSoonCount ?? 0}
+          />
+          <StatCard
+            label="Overdue Reminders"
+            value={reminderSummary?.overdueCount ?? 0}
+          />
+          <StatCard
+            label="Pending Reservations"
+            value={stats?.pendingReservations ?? 0}
+          />
           <StatCard label="Unpaid Fines" value={stats?.unpaidFines ?? 0} />
         </div>
       </section>
@@ -175,21 +242,45 @@ export function LibrarianOperationsPage({ workspace }) {
               placeholder="Scan or enter book copy barcode"
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleBarcodeLookup(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleBarcodeLookup();
+              }}
             />
-            <button className="primary-button" type="button" onClick={handleBarcodeLookup} disabled={scanning}>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={handleBarcodeLookup}
+              disabled={scanning}
+            >
               {scanning ? "Looking Up..." : "Lookup"}
             </button>
           </div>
           {scannedRecord ? (
             <div className="feature-banner" style={{ marginTop: "12px" }}>
-              <strong>Record #{scannedRecord.recordId} — {scannedRecord.bookTitle}</strong>
-              <p>Reader: {scannedRecord.readerUsername} | Status: {scannedRecord.status} | Due: {scannedRecord.dueDate || "-"}</p>
+              <strong>
+                Record #{scannedRecord.recordId} — {scannedRecord.bookTitle}
+              </strong>
+              <p>
+                Reader: {scannedRecord.readerUsername} | Status:{" "}
+                {scannedRecord.status} | Due: {scannedRecord.dueDate || "-"}
+              </p>
               <div className="inline-actions" style={{ marginBottom: 0 }}>
-                <button className="primary-button" type="button" onClick={() => handleBarcodeReturn(scannedRecord.recordId, true)}>
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() =>
+                    handleBarcodeReturn(scannedRecord.recordId, true)
+                  }
+                >
                   Approve Return
                 </button>
-                <button className="secondary-button" type="button" onClick={() => handleBarcodeReturn(scannedRecord.recordId, false)}>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() =>
+                    handleBarcodeReturn(scannedRecord.recordId, false)
+                  }
+                >
                   Reject Return
                 </button>
               </div>
@@ -207,8 +298,30 @@ export function LibrarianOperationsPage({ workspace }) {
           <section className="page-card">
             {message ? <p className="page-note">{message}</p> : null}
             {error ? <p className="page-note">{error}</p> : null}
+            {canViewReminders && reminderSummary ? (
+              <div className="feature-banner reminder-banner">
+                <strong>
+                  Return Reminder Window: {reminderSummary.reminderWindowDays}{" "}
+                  day(s)
+                </strong>
+                <p>
+                  Total reminders: {reminderSummary.totalReminderCount ?? 0}
+                  {" | "}
+                  Due soon: {reminderSummary.dueSoonCount ?? 0}
+                  {" | "}
+                  Due today: {reminderSummary.dueTodayCount ?? 0}
+                  {" | "}
+                  Overdue: {reminderSummary.overdueCount ?? 0}
+                </p>
+              </div>
+            ) : null}
             <div className="inline-actions">
-              <button className="secondary-button" type="button" onClick={loadData} disabled={loading}>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={loadData}
+                disabled={loading}
+              >
                 {loading ? "Loading..." : "Refresh"}
               </button>
             </div>
@@ -227,6 +340,68 @@ export function LibrarianOperationsPage({ workspace }) {
               </div>
             </div>
           </section>
+
+          {canViewReminders ? (
+            <section className="page-card">
+              <h3 className="section-title">Return Reminders</h3>
+              <p className="page-note">
+                The list shows active borrowing records that are already overdue
+                or will be due within the configured reminder window.
+              </p>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Type</th>
+                      <th>Reader</th>
+                      <th>Book</th>
+                      <th>Copy Barcode</th>
+                      <th>Due Date</th>
+                      <th>Due In</th>
+                      <th>Overdue Days</th>
+                      <th>Fine</th>
+                      <th>Action</th>
+                      <th>Reminder</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {returnReminders.map((item) => (
+                      <tr key={item.recordId}>
+                        <td>{item.recordId}</td>
+                        <td>
+                          {item.reminderType === "OVERDUE"
+                            ? "Overdue"
+                            : "Due Soon"}
+                        </td>
+                        <td>{item.readerUsername}</td>
+                        <td>{item.bookTitle}</td>
+                        <td>
+                          <Barcode
+                            value={item.copyBarcode}
+                            height={25}
+                            fontSize={9}
+                            displayValue={true}
+                          />
+                        </td>
+                        <td>{item.dueDate || "-"}</td>
+                        <td>{item.daysUntilDue ?? "-"}</td>
+                        <td>{item.overdueDays ?? "-"}</td>
+                        <td>{item.fineAmount ?? 0}</td>
+                        <td>{item.recommendedAction || "-"}</td>
+                        <td>{item.reminderInfo || "-"}</td>
+                      </tr>
+                    ))}
+                    {!loading && returnReminders.length === 0 ? (
+                      <tr>
+                        <td colSpan="11">No return reminders right now.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
 
           {canProcessReturns ? (
             <section className="page-card">
@@ -250,13 +425,24 @@ export function LibrarianOperationsPage({ workspace }) {
                         <td>{item.recordId}</td>
                         <td>{item.readerUsername}</td>
                         <td>{item.bookTitle}</td>
-                        <td><Barcode value={item.copyBarcode} height={25} fontSize={9} displayValue={true} /></td>
+                        <td>
+                          <Barcode
+                            value={item.copyBarcode}
+                            height={25}
+                            fontSize={9}
+                            displayValue={true}
+                          />
+                        </td>
                         <td>{item.status}</td>
                         <td>{item.borrowDate || "-"}</td>
                         <td>{item.dueDate || "-"}</td>
                       </tr>
                     ))}
-                    {!loading && currentBorrowings.length === 0 ? <tr><td colSpan="7">No active borrowing records.</td></tr> : null}
+                    {!loading && currentBorrowings.length === 0 ? (
+                      <tr>
+                        <td colSpan="7">No active borrowing records.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -287,7 +473,14 @@ export function LibrarianOperationsPage({ workspace }) {
                         <td>{item.recordId}</td>
                         <td>{item.readerUsername}</td>
                         <td>{item.bookTitle}</td>
-                        <td><Barcode value={item.copyBarcode} height={25} fontSize={9} displayValue={true} /></td>
+                        <td>
+                          <Barcode
+                            value={item.copyBarcode}
+                            height={25}
+                            fontSize={9}
+                            displayValue={true}
+                          />
+                        </td>
                         <td>{item.dueDate || "-"}</td>
                         <td>{item.overdueDays ?? 0}</td>
                         <td>{item.fineAmount ?? 0}</td>
@@ -295,7 +488,11 @@ export function LibrarianOperationsPage({ workspace }) {
                         <td>{item.reminderInfo || "-"}</td>
                       </tr>
                     ))}
-                    {!loading && overdueBorrowings.length === 0 ? <tr><td colSpan="9">No overdue borrowing records.</td></tr> : null}
+                    {!loading && overdueBorrowings.length === 0 ? (
+                      <tr>
+                        <td colSpan="9">No overdue borrowing records.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -324,22 +521,45 @@ export function LibrarianOperationsPage({ workspace }) {
                         <td>{item.recordId}</td>
                         <td>{item.readerUsername}</td>
                         <td>{item.bookTitle}</td>
-                        <td><Barcode value={item.copyBarcode} height={25} fontSize={9} displayValue={true} /></td>
+                        <td>
+                          <Barcode
+                            value={item.copyBarcode}
+                            height={25}
+                            fontSize={9}
+                            displayValue={true}
+                          />
+                        </td>
                         <td>{item.status}</td>
                         <td>{item.dueDate || "-"}</td>
                         <td>
                           <div className="table-actions">
-                            <button className="primary-button" type="button" onClick={() => handleProcessReturn(item.recordId, true)}>
+                            <button
+                              className="primary-button"
+                              type="button"
+                              onClick={() =>
+                                handleProcessReturn(item.recordId, true)
+                              }
+                            >
                               Approve
                             </button>
-                            <button className="secondary-button" type="button" onClick={() => handleProcessReturn(item.recordId, false)}>
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              onClick={() =>
+                                handleProcessReturn(item.recordId, false)
+                              }
+                            >
                               Reject
                             </button>
                           </div>
                         </td>
                       </tr>
                     ))}
-                    {!loading && returns.length === 0 ? <tr><td colSpan="7">No return requests.</td></tr> : null}
+                    {!loading && returns.length === 0 ? (
+                      <tr>
+                        <td colSpan="7">No return requests.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -372,10 +592,28 @@ export function LibrarianOperationsPage({ workspace }) {
                         <td>
                           {item.status === "PENDING" ? (
                             <div className="table-actions">
-                              <button className="primary-button" type="button" onClick={() => handleProcessReservation(item.reservationId, "FULFILL")}>
+                              <button
+                                className="primary-button"
+                                type="button"
+                                onClick={() =>
+                                  handleProcessReservation(
+                                    item.reservationId,
+                                    "FULFILL",
+                                  )
+                                }
+                              >
                                 Fulfill
                               </button>
-                              <button className="secondary-button" type="button" onClick={() => handleProcessReservation(item.reservationId, "CANCEL")}>
+                              <button
+                                className="secondary-button"
+                                type="button"
+                                onClick={() =>
+                                  handleProcessReservation(
+                                    item.reservationId,
+                                    "CANCEL",
+                                  )
+                                }
+                              >
                                 Cancel
                               </button>
                             </div>
@@ -385,7 +623,11 @@ export function LibrarianOperationsPage({ workspace }) {
                         </td>
                       </tr>
                     ))}
-                    {!loading && reservations.length === 0 ? <tr><td colSpan="6">No reservations.</td></tr> : null}
+                    {!loading && reservations.length === 0 ? (
+                      <tr>
+                        <td colSpan="6">No reservations.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -413,23 +655,46 @@ export function LibrarianOperationsPage({ workspace }) {
                       <tr key={item.fineId}>
                         <td>{item.fineId}</td>
                         <td>{item.bookTitle || "-"}</td>
-                        <td><Barcode value={item.copyBarcode} height={25} fontSize={9} displayValue={true} /></td>
+                        <td>
+                          <Barcode
+                            value={item.copyBarcode}
+                            height={25}
+                            fontSize={9}
+                            displayValue={true}
+                          />
+                        </td>
                         <td>{item.readerUsername}</td>
                         <td>{item.amount}</td>
                         <td>{item.status}</td>
                         <td>
                           <div className="table-actions">
-                            <button className="primary-button" type="button" onClick={() => handleFineStatus(item.fineId, "PAID")}>
+                            <button
+                              className="primary-button"
+                              type="button"
+                              onClick={() =>
+                                handleFineStatus(item.fineId, "PAID")
+                              }
+                            >
                               Mark Paid
                             </button>
-                            <button className="secondary-button" type="button" onClick={() => handleFineStatus(item.fineId, "UNPAID")}>
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              onClick={() =>
+                                handleFineStatus(item.fineId, "UNPAID")
+                              }
+                            >
                               Mark Unpaid
                             </button>
                           </div>
                         </td>
                       </tr>
                     ))}
-                    {!loading && fines.length === 0 ? <tr><td colSpan="7">No fines.</td></tr> : null}
+                    {!loading && fines.length === 0 ? (
+                      <tr>
+                        <td colSpan="7">No fines.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -460,7 +725,13 @@ export function LibrarianOperationsPage({ workspace }) {
                           <td>{item.borrowCount}</td>
                         </tr>
                       ))}
-                      {!loading && (!details?.popularBooks || details.popularBooks.length === 0) ? <tr><td colSpan="4">No popular book data.</td></tr> : null}
+                      {!loading &&
+                      (!details?.popularBooks ||
+                        details.popularBooks.length === 0) ? (
+                        <tr>
+                          <td colSpan="4">No popular book data.</td>
+                        </tr>
+                      ) : null}
                     </tbody>
                   </table>
                 </div>
@@ -484,7 +755,13 @@ export function LibrarianOperationsPage({ workspace }) {
                           <td>{item.returnCount}</td>
                         </tr>
                       ))}
-                      {!loading && (!details?.borrowTrend || details.borrowTrend.length === 0) ? <tr><td colSpan="3">No borrowing trend data.</td></tr> : null}
+                      {!loading &&
+                      (!details?.borrowTrend ||
+                        details.borrowTrend.length === 0) ? (
+                        <tr>
+                          <td colSpan="3">No borrowing trend data.</td>
+                        </tr>
+                      ) : null}
                     </tbody>
                   </table>
                 </div>

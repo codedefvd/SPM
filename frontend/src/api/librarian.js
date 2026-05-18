@@ -1,4 +1,4 @@
-﻿import { request } from "./base";
+import { request } from "./base";
 
 export const librarianApi = {
   lookupBookByIsbn(token, isbn) {
@@ -61,6 +61,12 @@ export const librarianApi = {
   },
   listOverdueBorrowings(token) {
     return request("/librarian/borrow-records/overdue", {}, token);
+  },
+  listReturnReminders(token) {
+    return request("/librarian/borrow-records/reminders", {}, token);
+  },
+  getReturnReminderSummary(token) {
+    return request("/librarian/borrow-records/reminders/summary", {}, token);
   },
   processReturnRequest(token, recordId, payload) {
     return request(`/librarian/return-requests/${recordId}/process`, { method: "POST", body: JSON.stringify(payload) }, token);

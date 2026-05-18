@@ -359,6 +359,12 @@ textarea {
   border: 1px solid var(--line);
 }
 
+.reminder-banner {
+  margin-bottom: 16px;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
