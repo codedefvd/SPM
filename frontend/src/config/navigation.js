@@ -2,6 +2,7 @@ export const roleMenus = {
   READER: [
     { key: "reader-books", title: "Books", hint: "Search and browse" },
     { key: "reader-records", title: "Borrow Records", hint: "Current and history" },
+    { key: "reader-fines", title: "Fines", hint: "Overdue charges" },
     { key: "reader-reservations", title: "Reservations", hint: "Reservation status" },
   ],
   LIBRARIAN: [

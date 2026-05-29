@@ -152,6 +152,11 @@ textarea {
   padding: 12px 16px;
 }
 
+.compact-button {
+  padding: 8px 12px;
+  min-width: 72px;
+}
+
 .primary-button {
   color: #fff;
   background: var(--accent);
@@ -549,6 +554,87 @@ th {
   align-items: center;
 }
 
+.payment-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.payment-summary,
+.payment-panel,
+.payment-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-panel {
+  justify-items: center;
+}
+
+.payment-status-panel {
+  width: min(100%, 420px);
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+}
+
+.payment-status-panel strong {
+  font-size: 24px;
+}
+
+.payment-status-panel span {
+  max-width: 320px;
+  color: var(--secondary);
+  line-height: 1.6;
+}
+
+.payment-qr {
+  width: min(100%, 280px);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.payment-qr-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+.payment-order-code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.payment-actions {
+  width: min(100%, 420px);
+  grid-template-columns: 1fr 1fr;
+}
+
+.payment-cancel-button {
+  width: min(100%, 420px);
+}
+
+.success-note {
+  color: #047857;
+}
+
+.error-note {
+  color: var(--danger);
+}
+
 @media (max-width: 1080px) {
   .shell,
   .auth-card {
@@ -581,12 +667,17 @@ th {
   .detail-grid,
   .split-grid,
   .form-grid,
-  .permission-grid {
+  .permission-grid,
+  .payment-layout {
     grid-template-columns: 1fr;
   }
 
   .field-inline {
     flex-direction: column;
+  }
+
+  .payment-actions {
+    grid-template-columns: 1fr;
   }
 
   .span-2 {

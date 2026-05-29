@@ -17,6 +17,8 @@
         </association>
         <association property="borrowRecord" javaType="com.team.lms.entity.BorrowRecord">
             <id property="id" column="borrow_record_id"/>
+            <result property="dueDate" column="due_date"/>
+            <result property="returnDate" column="return_date"/>
             <association property="book" javaType="com.team.lms.entity.Book">
                 <id property="id" column="book_id"/>
                 <result property="title" column="book_title"/>
@@ -31,7 +33,7 @@
     <sql id="FineColumns">
         f.id, f.reader_id, f.borrow_record_id, f.amount, f.status, f.created_at, f.updated_at, f.deleted,
         u.username as reader_username,
-        br.book_id, br.book_copy_id,
+        br.book_id, br.book_copy_id, br.due_date, br.return_date,
         b.title as book_title,
         bc.barcode as copy_barcode
     </sql>
