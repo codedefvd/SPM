@@ -17,7 +17,17 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         dropUniqueReviewConstraint();
+        createFineBorrowRecordConstraint();
         cleanupTestReviews();
+    }
+
+    private void createFineBorrowRecordConstraint() {
+        try {
+            jdbcTemplate.execute("alter table fines add constraint uq_fine_borrow_record unique (borrow_record_id)");
+            log.info("Created unique constraint uq_fine_borrow_record on fines");
+        } catch (Exception e) {
+            log.info("Constraint uq_fine_borrow_record already exists or cannot be created: {}", e.getMessage());
+        }
     }
 
     private void cleanupTestReviews() {
