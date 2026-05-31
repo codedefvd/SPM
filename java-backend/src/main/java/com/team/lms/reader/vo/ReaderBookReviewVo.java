@@ -3,6 +3,8 @@ package com.team.lms.reader.vo;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @Builder
 public class ReaderBookReviewVo {
@@ -12,4 +14,7 @@ public class ReaderBookReviewVo {
     private String reviewContent;
     private String createdAt;
     private Boolean mine;
+    private Integer likeCount;
+    private Boolean likedByMe;
+    private List<ReaderReviewReplyVo> replies;
 }

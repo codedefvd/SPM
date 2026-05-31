@@ -12,6 +12,7 @@ export function ReaderBookDetailPage({ workspace }) {
   const navigate = useNavigate();
   const [detail, setDetail] = useState(null);
   const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW_FORM);
+  const [replyForms, setReplyForms] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -102,6 +103,39 @@ export function ReaderBookDetailPage({ workspace }) {
     }
   }
 
+  async function handleToggleLike(reviewId) {
+    setSaving(true);
+    setError("");
+    try {
+      await readerApi.toggleReviewLike(workspace?.token, reviewId);
+      await loadDetail();
+    } catch (requestError) {
+      setError(requestError.message || "Failed to update like");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSubmitReply(event, reviewId) {
+    event.preventDefault();
+    const content = replyForms[reviewId]?.trim();
+    if (!content) {
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      await readerApi.submitReviewReply(workspace?.token, reviewId, { replyContent: content });
+      setReplyForms((prev) => ({ ...prev, [reviewId]: "" }));
+      await loadDetail();
+    } catch (requestError) {
+      setError(requestError.message || "Failed to submit reply");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading && !detail) {
     return (
       <section className="page-card">
@@ -149,6 +183,7 @@ export function ReaderBookDetailPage({ workspace }) {
                 <span>{detail.categoryName || "Uncategorized"}</span>
                 <span>ISBN: {detail.isbn || "-"}</span>
                 <span>Publisher: {detail.publisher || "-"}</span>
+                {detail.storageLocation ? <span>Location: {detail.storageLocation}</span> : null}
                 {detail.publishedDate ? <span>Published: {detail.publishedDate}</span> : null}
               </div>
               <p className="page-note">{detail.description || "No description available."}</p>
@@ -201,7 +236,38 @@ export function ReaderBookDetailPage({ workspace }) {
                     <span className="stars">{renderStars(review.ratingScore)}</span>
                   </div>
                   <p>{review.reviewContent}</p>
-                  <small>{formatDate(review.createdAt)}</small>
+                  <div className="review-actions">
+                    <button
+                      className={`like-button${review.likedByMe ? " active" : ""}`}
+                      type="button"
+                      disabled={saving}
+                      onClick={() => handleToggleLike(review.reviewId)}
+                    >
+                      {review.likedByMe ? "Liked" : "Like"} ({review.likeCount || 0})
+                    </button>
+                    <small>{formatDate(review.createdAt)}</small>
+                  </div>
+                  {review.replies?.length ? (
+                    <div className="reply-list">
+                      {review.replies.map((reply) => (
+                        <div key={reply.replyId} className={`reply-item${reply.mine ? " mine" : ""}`}>
+                          <strong>{reply.readerUsername}</strong>
+                          <p>{reply.replyContent}</p>
+                          <small>{formatDate(reply.createdAt)}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <form className="reply-form" onSubmit={(event) => handleSubmitReply(event, review.reviewId)}>
+                    <input
+                      placeholder="Reply to this review..."
+                      value={replyForms[review.reviewId] || ""}
+                      onChange={(event) => setReplyForms((prev) => ({ ...prev, [review.reviewId]: event.target.value }))}
+                    />
+                    <button className="secondary-button" type="submit" disabled={saving}>
+                      Reply
+                    </button>
+                  </form>
                 </article>
               ))
             ) : (

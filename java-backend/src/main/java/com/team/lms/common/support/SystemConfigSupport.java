@@ -29,6 +29,10 @@ public class SystemConfigSupport {
         return getIntValue("RETURN_REMINDER_LEAD_DAYS", 3);
     }
 
+    public int getMaxRenewals() {
+        return getIntValue("MAX_RENEWALS", 2);
+    }
+
     private int getIntValue(String key, int defaultValue) {
         SystemConfig config = systemConfigMapper.selectByKey(key);
         if (config == null || config.getConfigValue() == null || config.getConfigValue().isBlank()) {

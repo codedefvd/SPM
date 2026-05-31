@@ -8,6 +8,7 @@ import com.team.lms.entity.BookCopy;
 import com.team.lms.entity.Category;
 import com.team.lms.entity.Inventory;
 import com.team.lms.exception.BusinessException;
+import com.team.lms.librarian.dto.BookCopyLocationUpdateRequest;
 import com.team.lms.librarian.dto.BookCreateRequest;
 import com.team.lms.librarian.dto.BookUpdateRequest;
 import com.team.lms.librarian.dto.InventoryUpdateRequest;
@@ -91,6 +92,7 @@ public class LibrarianBookServiceImpl implements LibrarianBookService {
         book.setPublishedDate(normalizeOptional(request.getPublishedDate()));
         book.setCategory(category);
         book.setShelfStatus(parseShelfStatus(request.getShelfStatus()));
+        book.setStorageLocation(normalizeOptional(request.getStorageLocation()));
         bookMapper.insert(book);
 
         Inventory inventory = new Inventory();
@@ -126,6 +128,7 @@ public class LibrarianBookServiceImpl implements LibrarianBookService {
         existingBook.setDescription(normalizeOptional(request.getDescription()));
         existingBook.setThumbnailUrl(normalizeOptional(request.getThumbnailUrl()));
         existingBook.setPublishedDate(normalizeOptional(request.getPublishedDate()));
+        existingBook.setStorageLocation(normalizeOptional(request.getStorageLocation()));
         existingBook.setCategory(category);
         bookMapper.update(existingBook);
 
@@ -226,8 +229,31 @@ public class LibrarianBookServiceImpl implements LibrarianBookService {
                         .copyId(copy.getId())
                         .copyNo(copy.getCopyNo())
                         .barcode(copy.getBarcode())
+                        .storageLocation(copy.getStorageLocation())
                         .build())
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public BookCopyVo updateCopyLocation(String authorizationHeader, Long copyId, BookCopyLocationUpdateRequest request) {
+        permissionScopeSupport.requirePermission(authorizationHeader, RoleType.LIBRARIAN, "INVENTORY_MANAGE");
+        BookCopy copy = bookCopyMapper.selectById(copyId);
+        if (copy == null) {
+            throw new BusinessException(404, "book copy not found");
+        }
+        String location = normalizeOptional(request.getStorageLocation());
+        if (location == null) {
+            throw new BusinessException(400, "storageLocation is required");
+        }
+        bookCopyMapper.updateStorageLocation(copyId, location);
+        copy.setStorageLocation(location);
+        return BookCopyVo.builder()
+                .copyId(copy.getId())
+                .copyNo(copy.getCopyNo())
+                .barcode(copy.getBarcode())
+                .storageLocation(copy.getStorageLocation())
+                .build();
     }
 
     private Book requireBook(Long bookId) {
@@ -277,6 +303,7 @@ public class LibrarianBookServiceImpl implements LibrarianBookService {
                 copy.setBook(book);
                 copy.setCopyNo(copyNo);
                 copy.setBarcode(generateCopyBarcode(book.getId(), copyNo));
+                copy.setStorageLocation(book.getStorageLocation());
                 bookCopyMapper.insert(copy);
             });
             return;
@@ -328,6 +355,7 @@ public class LibrarianBookServiceImpl implements LibrarianBookService {
                 .totalCopies(inventory == null ? 0 : inventory.getTotalCopies())
                 .availableCopies(inventory == null ? 0 : inventory.getAvailableCopies())
                 .shelfStatus(book.getShelfStatus() == null ? null : book.getShelfStatus().name())
+                .storageLocation(book.getStorageLocation())
                 .build();
     }
 }

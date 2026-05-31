@@ -15,6 +15,8 @@ import com.team.lms.entity.BorrowRequest;
 import com.team.lms.entity.Fine;
 import com.team.lms.entity.Inventory;
 import com.team.lms.entity.Reservation;
+import com.team.lms.entity.ReviewLike;
+import com.team.lms.entity.ReviewReply;
 import com.team.lms.entity.User;
 import com.team.lms.exception.BusinessException;
 import com.team.lms.mapper.BookFavoriteMapper;
@@ -25,8 +27,11 @@ import com.team.lms.mapper.BorrowRequestMapper;
 import com.team.lms.mapper.FineMapper;
 import com.team.lms.mapper.InventoryMapper;
 import com.team.lms.mapper.ReservationMapper;
+import com.team.lms.mapper.ReviewLikeMapper;
+import com.team.lms.mapper.ReviewReplyMapper;
 import com.team.lms.reader.dto.ReaderBorrowRequestCreateRequest;
 import com.team.lms.reader.dto.ReaderBookReviewCreateRequest;
+import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 import com.team.lms.reader.service.ReaderBookService;
 import com.team.lms.reader.vo.ReaderBookDetailVo;
 import com.team.lms.reader.vo.ReaderBookVo;
@@ -35,6 +40,8 @@ import com.team.lms.reader.vo.ReaderBookReviewVo;
 import com.team.lms.reader.vo.ReaderBorrowRequestVo;
 import com.team.lms.reader.vo.ReaderFavoriteToggleVo;
 import com.team.lms.reader.vo.ReaderReservationVo;
+import com.team.lms.reader.vo.ReaderReviewLikeVo;
+import com.team.lms.reader.vo.ReaderReviewReplyVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -56,6 +63,8 @@ public class ReaderBookServiceImpl implements ReaderBookService {
     private final BookMapper bookMapper;
     private final BookFavoriteMapper bookFavoriteMapper;
     private final BookReviewMapper bookReviewMapper;
+    private final ReviewLikeMapper reviewLikeMapper;
+    private final ReviewReplyMapper reviewReplyMapper;
     private final InventoryMapper inventoryMapper;
     private final BorrowRequestMapper borrowRequestMapper;
     private final BorrowRecordMapper borrowRecordMapper;
@@ -128,6 +137,7 @@ public class ReaderBookServiceImpl implements ReaderBookService {
                 .totalCopies(totalCopies)
                 .availableCopies(availableCopies)
                 .shelfStatus(book.getShelfStatus() == null ? null : book.getShelfStatus().name())
+                .storageLocation(book.getStorageLocation())
                 .favorite(favorite)
                 .averageRating(calculateAverageRating(reviews))
                 .reviewCount(reviews.size())
@@ -236,6 +246,54 @@ public class ReaderBookServiceImpl implements ReaderBookService {
     }
 
     @Override
+    public ReaderReviewLikeVo toggleReviewLike(String authorizationHeader, Long reviewId) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.READER,
+                List.of("BOOK_SEARCH", "BOOK_VIEW")
+        );
+        User reader = currentUserSupport.requireUser(authorizationHeader);
+        BookReview review = requireReview(reviewId);
+
+        ReviewLike existing = reviewLikeMapper.selectByReviewAndReader(reviewId, reader.getId());
+        if (existing != null) {
+            reviewLikeMapper.deleteById(existing.getId());
+        } else {
+            ReviewLike like = new ReviewLike();
+            BookReview reviewRef = new BookReview();
+            reviewRef.setId(reviewId);
+            like.setReview(reviewRef);
+            like.setReader(reader);
+            reviewLikeMapper.insert(like);
+        }
+
+        return ReaderReviewLikeVo.builder()
+                .reviewId(reviewId)
+                .likeCount(reviewLikeMapper.countByReviewId(reviewId))
+                .likedByMe(existing == null)
+                .build();
+    }
+
+    @Override
+    public ReaderReviewReplyVo submitReviewReply(String authorizationHeader, Long reviewId, ReaderReviewReplyCreateRequest request) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.READER,
+                List.of("BOOK_SEARCH", "BOOK_VIEW")
+        );
+        User reader = currentUserSupport.requireUser(authorizationHeader);
+        BookReview review = requireReview(reviewId);
+
+        ReviewReply reply = new ReviewReply();
+        reply.setReview(review);
+        reply.setReader(reader);
+        reply.setReplyContent(request.getReplyContent().trim());
+        reviewReplyMapper.insert(reply);
+
+        return toReplyVo(reply, reader.getId());
+    }
+
+    @Override
     public List<ReaderBorrowRecordVo> listBorrowRecords(String authorizationHeader) {
         permissionScopeSupport.requireAnyPermission(
                 authorizationHeader,
@@ -255,6 +313,43 @@ public class ReaderBookServiceImpl implements ReaderBookService {
         return borrowRecordMapper.selectByReaderId(reader.getId()).stream()
                 .map(record -> toBorrowRecordVo(record, fineByRecordId.get(record.getId()), null))
                 .toList();
+    }
+
+    @Override
+    public ReaderBorrowRecordVo renewBorrowRecord(String authorizationHeader, Long recordId) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.READER,
+                List.of("RETURN_REQUEST", "BORROW_REQUEST", "BOOK_VIEW")
+        );
+        User reader = currentUserSupport.requireUser(authorizationHeader);
+
+        BorrowRecord record = borrowRecordMapper.selectById(recordId);
+        if (record == null) {
+            throw new BusinessException(404, "borrow record not found");
+        }
+        if (record.getReader() == null || !reader.getId().equals(record.getReader().getId())) {
+            throw new BusinessException(403, "cannot renew another reader's borrow record");
+        }
+        if (record.getStatus() != BorrowRecordStatus.BORROWED) {
+            throw new BusinessException(400, "only active borrowed books can be renewed");
+        }
+        if (record.getDueDate() != null && LocalDate.now().isAfter(record.getDueDate())) {
+            throw new BusinessException(400, "overdue books cannot be renewed online");
+        }
+
+        int renewalCount = record.getRenewalCount() == null ? 0 : record.getRenewalCount();
+        int maxRenewals = systemConfigSupport.getMaxRenewals();
+        if (renewalCount >= maxRenewals) {
+            throw new BusinessException(400, "maximum renewal limit reached");
+        }
+
+        record.setDueDate(record.getDueDate().plusDays(systemConfigSupport.getBorrowPeriodDays()));
+        record.setRenewalCount(renewalCount + 1);
+        borrowRecordMapper.update(record);
+
+        Fine fine = findFineByRecordId(record.getId());
+        return toBorrowRecordVo(record, fine, "renewal successful, due date extended");
     }
 
     @Override
@@ -361,6 +456,14 @@ public class ReaderBookServiceImpl implements ReaderBookService {
         return book;
     }
 
+    private BookReview requireReview(Long reviewId) {
+        BookReview review = bookReviewMapper.selectById(reviewId);
+        if (review == null) {
+            throw new BusinessException(404, "review not found");
+        }
+        return review;
+    }
+
     private boolean hasBorrowedBook(Long readerId, Long bookId) {
         return borrowRecordMapper.selectByReaderId(readerId).stream()
                 .anyMatch(record -> record.getBook() != null && bookId.equals(record.getBook().getId()));
@@ -413,6 +516,10 @@ public class ReaderBookServiceImpl implements ReaderBookService {
     }
 
     private ReaderBookReviewVo toReviewVo(BookReview review, Long currentReaderId) {
+        int likeCount = reviewLikeMapper.countByReviewId(review.getId());
+        ReviewLike myLike = reviewLikeMapper.selectByReviewAndReader(review.getId(), currentReaderId);
+        List<ReviewReply> replies = reviewReplyMapper.selectByReviewId(review.getId());
+
         return ReaderBookReviewVo.builder()
                 .reviewId(review.getId())
                 .readerUsername(review.getReader() == null ? null : review.getReader().getUsername())
@@ -420,6 +527,19 @@ public class ReaderBookServiceImpl implements ReaderBookService {
                 .reviewContent(review.getReviewContent())
                 .createdAt(review.getCreatedAt() == null ? null : review.getCreatedAt().toString())
                 .mine(review.getReader() != null && currentReaderId.equals(review.getReader().getId()))
+                .likeCount(likeCount)
+                .likedByMe(myLike != null)
+                .replies(replies.stream().map(reply -> toReplyVo(reply, currentReaderId)).toList())
+                .build();
+    }
+
+    private ReaderReviewReplyVo toReplyVo(ReviewReply reply, Long currentReaderId) {
+        return ReaderReviewReplyVo.builder()
+                .replyId(reply.getId())
+                .readerUsername(reply.getReader() == null ? null : reply.getReader().getUsername())
+                .replyContent(reply.getReplyContent())
+                .createdAt(reply.getCreatedAt() == null ? null : reply.getCreatedAt().toString())
+                .mine(reply.getReader() != null && currentReaderId.equals(reply.getReader().getId()))
                 .build();
     }
 
@@ -427,6 +547,12 @@ public class ReaderBookServiceImpl implements ReaderBookService {
         BorrowRecordStatus displayStatus = resolveDisplayStatus(record);
         long overdueDays = calculateOverdueDays(record);
         BigDecimal fineAmount = fine == null ? estimateFine(record, overdueDays) : fine.getAmount();
+        int renewalCount = record.getRenewalCount() == null ? 0 : record.getRenewalCount();
+        int maxRenewals = systemConfigSupport.getMaxRenewals();
+        boolean canRenew = displayStatus == BorrowRecordStatus.BORROWED
+                && overdueDays == 0
+                && renewalCount < maxRenewals;
+        String storageLocation = resolveStorageLocation(record);
 
         return ReaderBorrowRecordVo.builder()
                 .recordId(record.getId())
@@ -440,8 +566,26 @@ public class ReaderBookServiceImpl implements ReaderBookService {
                 .fineAmount(fineAmount)
                 .overdueDays(overdueDays)
                 .canRequestReturn(displayStatus == BorrowRecordStatus.BORROWED || displayStatus == BorrowRecordStatus.OVERDUE)
+                .canRenew(canRenew)
+                .renewalCount(renewalCount)
+                .maxRenewals(maxRenewals)
+                .storageLocation(storageLocation)
                 .message(message)
                 .build();
+    }
+
+    private String resolveStorageLocation(BorrowRecord record) {
+        if (record.getBookCopy() != null && record.getBookCopy().getStorageLocation() != null
+                && !record.getBookCopy().getStorageLocation().isBlank()) {
+            return record.getBookCopy().getStorageLocation();
+        }
+        if (record.getBook() != null && record.getBook().getId() != null) {
+            Book book = bookMapper.selectById(record.getBook().getId());
+            if (book != null && book.getStorageLocation() != null && !book.getStorageLocation().isBlank()) {
+                return book.getStorageLocation();
+            }
+        }
+        return null;
     }
 
     private ReaderReservationVo toReservationVo(Reservation reservation, String message) {

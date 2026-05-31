@@ -22,4 +22,5 @@ public class BookUpdateRequest {
     private String description;
     private String thumbnailUrl;
     private String publishedDate;
+    private String storageLocation;
 }

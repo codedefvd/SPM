@@ -20,4 +20,5 @@ public class BookManageVo {
     private Integer totalCopies;
     private Integer availableCopies;
     private String shelfStatus;
+    private String storageLocation;
 }

@@ -23,6 +23,7 @@ public class BookCreateRequest {
     private String description;
     private String thumbnailUrl;
     private String publishedDate;
+    private String storageLocation;
 
     @NotNull(message = "totalCopies is required")
     @PositiveOrZero(message = "totalCopies must be >= 0")
