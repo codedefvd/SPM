@@ -21,3 +21,14 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+alipay:
+  sandbox:
+    app-id: ${ALIPAY_SANDBOX_APP_ID:}
+    merchant-private-key: ${ALIPAY_SANDBOX_MERCHANT_PRIVATE_KEY:}
+    alipay-public-key: ${ALIPAY_SANDBOX_ALIPAY_PUBLIC_KEY:}
+    gateway-url: ${ALIPAY_SANDBOX_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+    notify-base-url: ${ALIPAY_SANDBOX_NOTIFY_BASE_URL:}
+    return-url: ${ALIPAY_SANDBOX_RETURN_URL:http://127.0.0.1:5173/reader/fines}
+    connect-timeout-ms: ${ALIPAY_SANDBOX_CONNECT_TIMEOUT_MS:10000}
+    read-timeout-ms: ${ALIPAY_SANDBOX_READ_TIMEOUT_MS:60000}

@@ -11,6 +11,8 @@ import com.team.lms.reader.vo.ReaderBookReviewVo;
 import com.team.lms.reader.vo.ReaderReviewLikeVo;
 import com.team.lms.reader.vo.ReaderReviewReplyVo;
 import com.team.lms.reader.vo.ReaderFavoriteToggleVo;
+import com.team.lms.reader.vo.ReaderFinePaymentOrderVo;
+import com.team.lms.reader.vo.ReaderFineVo;
 import com.team.lms.reader.vo.ReaderReservationVo;
 
 import java.util.List;
@@ -34,7 +36,11 @@ public interface ReaderBookService {
 
     List<ReaderBorrowRecordVo> listBorrowRecords(String authorizationHeader);
 
-    ReaderBorrowRecordVo renewBorrowRecord(String authorizationHeader, Long recordId);
+    List<ReaderFineVo> listFines(String authorizationHeader);
+
+    ReaderFinePaymentOrderVo createFinePaymentOrder(String authorizationHeader, Long fineId);
+
+    ReaderFineVo confirmFinePayment(String authorizationHeader, Long fineId);
 
     ReaderBorrowRecordVo submitReturnRequest(String authorizationHeader, Long recordId);
 

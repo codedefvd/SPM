@@ -167,7 +167,8 @@ create table if not exists fines (
     updated_at datetime not null,
     deleted boolean not null default false,
     constraint fk_fine_reader foreign key (reader_id) references users(id),
-    constraint fk_fine_borrow_record foreign key (borrow_record_id) references borrow_records(id)
+    constraint fk_fine_borrow_record foreign key (borrow_record_id) references borrow_records(id),
+    constraint uq_fine_borrow_record unique (borrow_record_id)
 );
 
 create table if not exists book_favorites (

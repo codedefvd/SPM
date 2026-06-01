@@ -29,6 +29,15 @@ export const readerApi = {
   listBorrowRecords(token) {
     return request("/reader/books/records", {}, token);
   },
+  listFines(token) {
+    return request("/reader/books/fines", {}, token);
+  },
+  createFinePaymentOrder(token, fineId) {
+    return request(`/reader/books/fines/${fineId}/alipay-order`, { method: "POST" }, token);
+  },
+  confirmFinePayment(token, fineId) {
+    return request(`/reader/books/fines/${fineId}/pay-confirm`, { method: "POST" }, token);
+  },
   submitReturnRequest(token, recordId) {
     return request(`/reader/books/records/${recordId}/return-request`, { method: "POST" }, token);
   },

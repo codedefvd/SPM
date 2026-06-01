@@ -2,6 +2,7 @@ package com.team.lms.reader.service.impl;
 
 import com.team.lms.common.enums.BorrowRequestStatus;
 import com.team.lms.common.enums.BorrowRecordStatus;
+import com.team.lms.common.enums.FineStatus;
 import com.team.lms.common.enums.ReservationStatus;
 import com.team.lms.common.enums.RoleType;
 import com.team.lms.common.support.CurrentUserSupport;
@@ -27,8 +28,7 @@ import com.team.lms.mapper.BorrowRequestMapper;
 import com.team.lms.mapper.FineMapper;
 import com.team.lms.mapper.InventoryMapper;
 import com.team.lms.mapper.ReservationMapper;
-import com.team.lms.mapper.ReviewLikeMapper;
-import com.team.lms.mapper.ReviewReplyMapper;
+import com.team.lms.payment.AlipaySandboxPaymentService;
 import com.team.lms.reader.dto.ReaderBorrowRequestCreateRequest;
 import com.team.lms.reader.dto.ReaderBookReviewCreateRequest;
 import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
@@ -39,6 +39,8 @@ import com.team.lms.reader.vo.ReaderBorrowRecordVo;
 import com.team.lms.reader.vo.ReaderBookReviewVo;
 import com.team.lms.reader.vo.ReaderBorrowRequestVo;
 import com.team.lms.reader.vo.ReaderFavoriteToggleVo;
+import com.team.lms.reader.vo.ReaderFinePaymentOrderVo;
+import com.team.lms.reader.vo.ReaderFineVo;
 import com.team.lms.reader.vo.ReaderReservationVo;
 import com.team.lms.reader.vo.ReaderReviewLikeVo;
 import com.team.lms.reader.vo.ReaderReviewReplyVo;
@@ -53,7 +55,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,6 +74,7 @@ public class ReaderBookServiceImpl implements ReaderBookService {
     private final CurrentUserSupport currentUserSupport;
     private final PermissionScopeSupport permissionScopeSupport;
     private final SystemConfigSupport systemConfigSupport;
+    private final AlipaySandboxPaymentService alipaySandboxPaymentService;
 
     @Override
     public List<ReaderBookVo> listVisibleBooks(String authorizationHeader, String keyword) {
@@ -302,54 +304,74 @@ public class ReaderBookServiceImpl implements ReaderBookService {
         );
         User reader = currentUserSupport.requireUser(authorizationHeader);
 
-        Map<Long, Fine> fineByRecordId = fineMapper.selectAll().stream()
-                .filter(fine -> fine.getBorrowRecord() != null && fine.getBorrowRecord().getId() != null)
-                .collect(Collectors.toMap(
-                        fine -> fine.getBorrowRecord().getId(),
-                        Function.identity(),
-                        (left, right) -> left
-                ));
-
         return borrowRecordMapper.selectByReaderId(reader.getId()).stream()
-                .map(record -> toBorrowRecordVo(record, fineByRecordId.get(record.getId()), null))
+                .map(record -> toBorrowRecordVo(record, ensureOverdueFine(record), null))
                 .toList();
     }
 
     @Override
-    public ReaderBorrowRecordVo renewBorrowRecord(String authorizationHeader, Long recordId) {
+    public List<ReaderFineVo> listFines(String authorizationHeader) {
         permissionScopeSupport.requireAnyPermission(
                 authorizationHeader,
                 RoleType.READER,
-                List.of("RETURN_REQUEST", "BORROW_REQUEST", "BOOK_VIEW")
+                List.of("RETURN_REQUEST", "BORROW_REQUEST", "BOOK_VIEW", "BOOK_SEARCH")
         );
         User reader = currentUserSupport.requireUser(authorizationHeader);
 
-        BorrowRecord record = borrowRecordMapper.selectById(recordId);
-        if (record == null) {
-            throw new BusinessException(404, "borrow record not found");
+        borrowRecordMapper.selectByReaderId(reader.getId()).forEach(this::ensureOverdueFine);
+
+        return fineMapper.selectAll().stream()
+                .filter(fine -> fine.getReader() != null && reader.getId().equals(fine.getReader().getId()))
+                .map(this::toFineVo)
+                .toList();
+    }
+
+    @Override
+    public ReaderFinePaymentOrderVo createFinePaymentOrder(String authorizationHeader, Long fineId) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.READER,
+                List.of("RETURN_REQUEST", "BORROW_REQUEST", "BOOK_VIEW", "BOOK_SEARCH")
+        );
+        User reader = currentUserSupport.requireUser(authorizationHeader);
+
+        Fine fine = fineMapper.selectById(fineId);
+        if (fine == null) {
+            throw new BusinessException(404, "fine not found");
         }
-        if (record.getReader() == null || !reader.getId().equals(record.getReader().getId())) {
-            throw new BusinessException(403, "cannot renew another reader's borrow record");
+        if (fine.getReader() == null || !reader.getId().equals(fine.getReader().getId())) {
+            throw new BusinessException(403, "cannot pay another reader's fine");
         }
-        if (record.getStatus() != BorrowRecordStatus.BORROWED) {
-            throw new BusinessException(400, "only active borrowed books can be renewed");
+        return alipaySandboxPaymentService.createFinePrecreate(fine);
+    }
+
+    @Override
+    public ReaderFineVo confirmFinePayment(String authorizationHeader, Long fineId) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.READER,
+                List.of("RETURN_REQUEST", "BORROW_REQUEST", "BOOK_VIEW", "BOOK_SEARCH")
+        );
+        User reader = currentUserSupport.requireUser(authorizationHeader);
+
+        Fine fine = fineMapper.selectById(fineId);
+        if (fine == null) {
+            throw new BusinessException(404, "fine not found");
         }
-        if (record.getDueDate() != null && LocalDate.now().isAfter(record.getDueDate())) {
-            throw new BusinessException(400, "overdue books cannot be renewed online");
+        if (fine.getReader() == null || !reader.getId().equals(fine.getReader().getId())) {
+            throw new BusinessException(403, "cannot pay another reader's fine");
+        }
+        if (fine.getStatus() == FineStatus.PAID) {
+            return toFineVo(fine);
+        }
+        if (fine.getStatus() != FineStatus.UNPAID) {
+            throw new BusinessException(400, "only unpaid fines can be paid");
         }
 
-        int renewalCount = record.getRenewalCount() == null ? 0 : record.getRenewalCount();
-        int maxRenewals = systemConfigSupport.getMaxRenewals();
-        if (renewalCount >= maxRenewals) {
-            throw new BusinessException(400, "maximum renewal limit reached");
-        }
-
-        record.setDueDate(record.getDueDate().plusDays(systemConfigSupport.getBorrowPeriodDays()));
-        record.setRenewalCount(renewalCount + 1);
-        borrowRecordMapper.update(record);
-
-        Fine fine = findFineByRecordId(record.getId());
-        return toBorrowRecordVo(record, fine, "renewal successful, due date extended");
+        fine.setStatus(FineStatus.PAID);
+        fineMapper.update(fine);
+        Fine savedFine = fineMapper.selectById(fineId);
+        return toFineVo(savedFine == null ? fine : savedFine);
     }
 
     @Override
@@ -377,7 +399,7 @@ public class ReaderBookServiceImpl implements ReaderBookService {
         record.setStatus(BorrowRecordStatus.RETURN_PENDING);
         borrowRecordMapper.update(record);
 
-        Fine fine = findFineByRecordId(record.getId());
+        Fine fine = ensureOverdueFine(record);
         return toBorrowRecordVo(record, fine, "return request submitted and waiting for librarian processing");
     }
 
@@ -442,10 +464,33 @@ public class ReaderBookServiceImpl implements ReaderBookService {
     }
 
     private Fine findFineByRecordId(Long recordId) {
-        return fineMapper.selectAll().stream()
-                .filter(fine -> fine.getBorrowRecord() != null && recordId.equals(fine.getBorrowRecord().getId()))
-                .findFirst()
-                .orElse(null);
+        return fineMapper.selectByBorrowRecordId(recordId);
+    }
+
+    private Fine ensureOverdueFine(BorrowRecord record) {
+        long overdueDays = calculateOverdueDays(record);
+        Fine existing = findFineByRecordId(record.getId());
+        if (overdueDays <= 0) {
+            return existing;
+        }
+
+        BigDecimal amount = systemConfigSupport.getOverdueFinePerDay().multiply(BigDecimal.valueOf(overdueDays));
+        if (existing == null) {
+            Fine fine = new Fine();
+            fine.setReader(record.getReader());
+            fine.setBorrowRecord(record);
+            fine.setAmount(amount);
+            fine.setStatus(FineStatus.UNPAID);
+            fineMapper.insert(fine);
+            return fine;
+        }
+
+        if (existing.getStatus() != FineStatus.PAID && existing.getStatus() != FineStatus.WAIVED) {
+            existing.setAmount(amount);
+            existing.setStatus(existing.getStatus() == null ? FineStatus.UNPAID : existing.getStatus());
+            fineMapper.update(existing);
+        }
+        return existing;
     }
 
     private Book requireBook(Long bookId) {
@@ -597,6 +642,22 @@ public class ReaderBookServiceImpl implements ReaderBookService {
                 .queueNo(reservation.getQueueNo())
                 .createdAt(reservation.getCreatedAt() == null ? null : reservation.getCreatedAt().toString())
                 .message(message)
+                .build();
+    }
+
+    private ReaderFineVo toFineVo(Fine fine) {
+        BorrowRecord record = fine.getBorrowRecord();
+        return ReaderFineVo.builder()
+                .fineId(fine.getId())
+                .recordId(record == null ? null : record.getId())
+                .bookId(record == null || record.getBook() == null ? null : record.getBook().getId())
+                .bookTitle(record == null || record.getBook() == null ? null : record.getBook().getTitle())
+                .copyBarcode(record == null || record.getBookCopy() == null ? null : record.getBookCopy().getBarcode())
+                .amount(fine.getAmount())
+                .status(fine.getStatus() == null ? null : fine.getStatus().name())
+                .overdueDays(record == null ? 0 : calculateOverdueDays(record))
+                .dueDate(record == null || record.getDueDate() == null ? null : record.getDueDate().toString())
+                .returnDate(record == null || record.getReturnDate() == null ? null : record.getReturnDate().toString())
                 .build();
     }
 

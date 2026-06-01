@@ -14,6 +14,8 @@ import com.team.lms.reader.vo.ReaderReviewLikeVo;
 import com.team.lms.reader.vo.ReaderReviewReplyVo;
 import com.team.lms.reader.vo.ReaderBorrowRequestVo;
 import com.team.lms.reader.vo.ReaderFavoriteToggleVo;
+import com.team.lms.reader.vo.ReaderFinePaymentOrderVo;
+import com.team.lms.reader.vo.ReaderFineVo;
 import com.team.lms.reader.vo.ReaderReservationVo;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -101,12 +103,27 @@ public class ReaderBookController extends BaseController {
         return success(readerBookService.listBorrowRecords(authorizationHeader));
     }
 
-    @PostMapping("/records/{recordId}/renew")
-    public ApiResponse<ReaderBorrowRecordVo> renewBorrowRecord(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable Long recordId
+    @GetMapping("/fines")
+    public ApiResponse<List<ReaderFineVo>> listFines(
+            @RequestHeader("Authorization") String authorizationHeader
     ) {
-        return success(readerBookService.renewBorrowRecord(authorizationHeader, recordId));
+        return success(readerBookService.listFines(authorizationHeader));
+    }
+
+    @PostMapping("/fines/{fineId}/alipay-order")
+    public ApiResponse<ReaderFinePaymentOrderVo> createFinePaymentOrder(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long fineId
+    ) {
+        return success(readerBookService.createFinePaymentOrder(authorizationHeader, fineId));
+    }
+
+    @PostMapping("/fines/{fineId}/pay-confirm")
+    public ApiResponse<ReaderFineVo> confirmFinePayment(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long fineId
+    ) {
+        return success(readerBookService.confirmFinePayment(authorizationHeader, fineId));
     }
 
     @PostMapping("/records/{recordId}/return-request")

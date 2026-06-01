@@ -7,6 +7,8 @@ import { AuthPage } from "./pages/auth/AuthPage";
 import { ReaderBooksPage } from "./pages/reader/ReaderBooksPage";
 import { ReaderBookDetailPage } from "./pages/reader/ReaderBookDetailPage";
 import { ReaderRecordsPage } from "./pages/reader/ReaderRecordsPage";
+import { ReaderFinesPage } from "./pages/reader/ReaderFinesPage";
+import { ReaderFinePaymentPage } from "./pages/reader/ReaderFinePaymentPage";
 import { ReaderRegisterPage } from "./pages/reader/ReaderRegisterPage";
 import { ReaderReservationsPage } from "./pages/reader/ReaderReservationsPage";
 import { ReaderFeedbackPage } from "./pages/reader/ReaderFeedbackPage";
@@ -27,6 +29,7 @@ const roleHomePaths = {
 const pageRoutes = [
   { key: "reader-books", role: "READER", path: "/reader/books" },
   { key: "reader-records", role: "READER", path: "/reader/records" },
+  { key: "reader-fines", role: "READER", path: "/reader/fines" },
   { key: "reader-reservations", role: "READER", path: "/reader/reservations" },
   { key: "reader-feedback", role: "READER", path: "/reader/feedback" },
   { key: "librarian-catalog", role: "LIBRARIAN", path: "/librarian/catalog" },
@@ -67,6 +70,9 @@ function filterMenusByPermissions(workspace) {
       return hasAnyPermission(workspace, ["BOOK_SEARCH", "BOOK_VIEW", "BORROW_REQUEST"]);
     }
     if (item.key === "reader-records") {
+      return hasAnyPermission(workspace, ["RETURN_REQUEST", "BORROW_REQUEST", "BOOK_SEARCH", "BOOK_VIEW"]);
+    }
+    if (item.key === "reader-fines") {
       return hasAnyPermission(workspace, ["RETURN_REQUEST", "BORROW_REQUEST", "BOOK_SEARCH", "BOOK_VIEW"]);
     }
     if (item.key === "reader-reservations") {
@@ -183,7 +189,8 @@ export default function App() {
   }
 
   const activeRoute = pageRoutes.find((item) => item.path === location.pathname)
-    || (matchPath("/reader/books/:bookId", location.pathname) ? { key: "reader-books", role: "READER" } : null);
+    || (matchPath("/reader/books/:bookId", location.pathname) ? { key: "reader-books", role: "READER" } : null)
+    || (matchPath("/reader/fines/pay/:fineId", location.pathname) ? { key: "reader-fines", role: "READER" } : null);
 
   function updateWorkspaceActiveKey(nextKey) {
     if (!workspace || workspace.activeKey === nextKey) {
@@ -258,6 +265,14 @@ export default function App() {
       <Route
         path="/reader/records"
         element={renderProtectedPage("READER", "reader-records", <ReaderRecordsPage workspace={workspace} />)}
+      />
+      <Route
+        path="/reader/fines"
+        element={renderProtectedPage("READER", "reader-fines", <ReaderFinesPage workspace={workspace} />)}
+      />
+      <Route
+        path="/reader/fines/pay/:fineId"
+        element={renderProtectedPage("READER", "reader-fines", <ReaderFinePaymentPage workspace={workspace} />)}
       />
       <Route
         path="/reader/reservations"
