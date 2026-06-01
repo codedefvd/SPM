@@ -21,4 +21,8 @@ public interface BookCopyMapper {
     void softDeleteByIds(@Param("ids") List<Long> ids);
 
     void softDeleteByBookId(Long bookId);
+
+    BookCopy selectById(Long id);
+
+    void updateStorageLocation(@Param("id") Long id, @Param("storageLocation") String storageLocation);
 }

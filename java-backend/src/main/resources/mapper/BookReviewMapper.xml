@@ -45,6 +45,15 @@
         order by r.created_at desc, r.id desc
     </select>
 
+    <select id="selectById" resultMap="BookReviewResultMap">
+        select <include refid="ReviewColumns"/>
+        from book_reviews r
+        join users u on r.reader_id = u.id
+        join books b on r.book_id = b.id
+        where r.id = #{id} and r.deleted = false
+        limit 1
+    </select>
+
     <select id="selectByReaderAndBookId" resultMap="BookReviewResultMap">
         select <include refid="ReviewColumns"/>
         from book_reviews r

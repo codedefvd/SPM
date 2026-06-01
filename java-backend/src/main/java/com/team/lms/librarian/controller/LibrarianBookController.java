@@ -2,6 +2,7 @@ package com.team.lms.librarian.controller;
 
 import com.team.lms.common.api.ApiResponse;
 import com.team.lms.common.api.BaseController;
+import com.team.lms.librarian.dto.BookCopyLocationUpdateRequest;
 import com.team.lms.librarian.dto.BookCreateRequest;
 import com.team.lms.librarian.dto.BookUpdateRequest;
 import com.team.lms.librarian.dto.InventoryUpdateRequest;
@@ -86,6 +87,15 @@ public class LibrarianBookController extends BaseController {
             @Valid @RequestBody ShelfStatusUpdateRequest request
     ) {
         return success(librarianBookService.updateShelfStatus(authorizationHeader, bookId, request));
+    }
+
+    @PatchMapping("/copies/{copyId}/location")
+    public ApiResponse<BookCopyVo> updateCopyLocation(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long copyId,
+            @Valid @RequestBody BookCopyLocationUpdateRequest request
+    ) {
+        return success(librarianBookService.updateCopyLocation(authorizationHeader, copyId, request));
     }
 
     @DeleteMapping("/{bookId}")

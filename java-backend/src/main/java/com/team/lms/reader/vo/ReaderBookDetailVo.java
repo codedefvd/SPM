@@ -20,6 +20,7 @@ public class ReaderBookDetailVo {
     private Integer totalCopies;
     private Integer availableCopies;
     private String shelfStatus;
+    private String storageLocation;
     private Boolean favorite;
     private Double averageRating;
     private Integer reviewCount;

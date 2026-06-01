@@ -63,6 +63,21 @@ export function ReaderRecordsPage({ workspace }) {
     }
   }
 
+  async function handleRenew(recordId) {
+    setSubmittingId(recordId);
+    setMessage("");
+    setError("");
+    try {
+      const result = await readerApi.renewBorrowRecord(workspace?.token, recordId);
+      setMessage(result.message || `Record #${recordId} renewed.`);
+      await loadRecords();
+    } catch (requestError) {
+      setError(requestError.message || "Failed to renew borrow record");
+    } finally {
+      setSubmittingId(null);
+    }
+  }
+
   const currentRecords = useMemo(
     () => records.filter((item) => item.status !== "RETURNED"),
     [records]
@@ -123,6 +138,8 @@ export function ReaderRecordsPage({ workspace }) {
                     <th>Status</th>
                     <th>Borrow Date</th>
                     <th>Due Date</th>
+                    <th>Location</th>
+                    <th>Renewals</th>
                     <th>Fine</th>
                     <th>Action</th>
                   </tr>
@@ -136,26 +153,40 @@ export function ReaderRecordsPage({ workspace }) {
                       <td>{record.status}</td>
                       <td>{record.borrowDate || "-"}</td>
                       <td>{record.dueDate || "-"}</td>
+                      <td>{record.storageLocation || "-"}</td>
+                      <td>{record.renewalCount ?? 0}/{record.maxRenewals ?? 0}</td>
                       <td>${Number(record.fineAmount || 0).toFixed(2)}</td>
                       <td>
-                        {record.canRequestReturn && canManageReturns ? (
-                          <button
-                            className="primary-button"
-                            type="button"
-                            disabled={submittingId === record.recordId}
-                            onClick={() => handleReturnRequest(record.recordId)}
-                          >
-                            {submittingId === record.recordId ? "Submitting..." : "Create Return Request"}
-                          </button>
-                        ) : (
-                          record.message || "-"
-                        )}
+                        <div className="table-actions">
+                          {record.canRenew ? (
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              disabled={submittingId === record.recordId}
+                              onClick={() => handleRenew(record.recordId)}
+                            >
+                              {submittingId === record.recordId ? "Renewing..." : "Renew Online"}
+                            </button>
+                          ) : null}
+                          {record.canRequestReturn && canManageReturns ? (
+                            <button
+                              className="primary-button"
+                              type="button"
+                              disabled={submittingId === record.recordId}
+                              onClick={() => handleReturnRequest(record.recordId)}
+                            >
+                              {submittingId === record.recordId ? "Submitting..." : "Create Return Request"}
+                            </button>
+                          ) : (
+                            !record.canRenew ? (record.message || "-") : null
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
                   {!loading && currentRecords.length === 0 ? (
                     <tr>
-                      <td colSpan="8">No current borrowing records.</td>
+                      <td colSpan="10">No current borrowing records.</td>
                     </tr>
                   ) : null}
                 </tbody>

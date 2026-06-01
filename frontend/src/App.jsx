@@ -11,9 +11,11 @@ import { ReaderFinesPage } from "./pages/reader/ReaderFinesPage";
 import { ReaderFinePaymentPage } from "./pages/reader/ReaderFinePaymentPage";
 import { ReaderRegisterPage } from "./pages/reader/ReaderRegisterPage";
 import { ReaderReservationsPage } from "./pages/reader/ReaderReservationsPage";
+import { ReaderFeedbackPage } from "./pages/reader/ReaderFeedbackPage";
 import { LibrarianCatalogPage } from "./pages/librarian/LibrarianCatalogPage";
 import { LibrarianRequestsPage } from "./pages/librarian/LibrarianRequestsPage";
 import { LibrarianOperationsPage } from "./pages/librarian/LibrarianOperationsPage";
+import { LibrarianFeedbackPage } from "./pages/librarian/LibrarianFeedbackPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminMonitoringPage } from "./pages/admin/AdminMonitoringPage";
 
@@ -29,9 +31,11 @@ const pageRoutes = [
   { key: "reader-records", role: "READER", path: "/reader/records" },
   { key: "reader-fines", role: "READER", path: "/reader/fines" },
   { key: "reader-reservations", role: "READER", path: "/reader/reservations" },
+  { key: "reader-feedback", role: "READER", path: "/reader/feedback" },
   { key: "librarian-catalog", role: "LIBRARIAN", path: "/librarian/catalog" },
   { key: "librarian-requests", role: "LIBRARIAN", path: "/librarian/requests" },
   { key: "librarian-operations", role: "LIBRARIAN", path: "/librarian/operations" },
+  { key: "librarian-feedback", role: "LIBRARIAN", path: "/librarian/feedback" },
   { key: "admin-users", role: "ADMIN", path: "/admin/users" },
   { key: "admin-monitoring", role: "ADMIN", path: "/admin/monitoring" },
 ];
@@ -74,6 +78,9 @@ function filterMenusByPermissions(workspace) {
     if (item.key === "reader-reservations") {
       return hasAnyPermission(workspace, ["RESERVATION"]);
     }
+    if (item.key === "reader-feedback") {
+      return hasAnyPermission(workspace, ["FEEDBACK"]);
+    }
     if (item.key === "librarian-catalog") {
       return hasAnyPermission(workspace, ["BOOK_MANAGE", "INVENTORY_MANAGE"]);
     }
@@ -82,6 +89,9 @@ function filterMenusByPermissions(workspace) {
     }
     if (item.key === "librarian-operations") {
       return hasAnyPermission(workspace, ["REQUEST_PROCESS", "RESERVATION_PROCESS", "FINE_MANAGE"]);
+    }
+    if (item.key === "librarian-feedback") {
+      return hasAnyPermission(workspace, ["FEEDBACK_MANAGE"]);
     }
     return true;
   });
@@ -269,6 +279,10 @@ export default function App() {
         element={renderProtectedPage("READER", "reader-reservations", <ReaderReservationsPage workspace={workspace} />)}
       />
       <Route
+        path="/reader/feedback"
+        element={renderProtectedPage("READER", "reader-feedback", <ReaderFeedbackPage workspace={workspace} />)}
+      />
+      <Route
         path="/librarian/catalog"
         element={renderProtectedPage("LIBRARIAN", "librarian-catalog", <LibrarianCatalogPage workspace={workspace} />)}
       />
@@ -279,6 +293,10 @@ export default function App() {
       <Route
         path="/librarian/operations"
         element={renderProtectedPage("LIBRARIAN", "librarian-operations", <LibrarianOperationsPage workspace={workspace} />)}
+      />
+      <Route
+        path="/librarian/feedback"
+        element={renderProtectedPage("LIBRARIAN", "librarian-feedback", <LibrarianFeedbackPage workspace={workspace} />)}
       />
       <Route
         path="/admin/users"

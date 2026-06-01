@@ -19,5 +19,9 @@ public class ReaderBorrowRecordVo {
     private BigDecimal fineAmount;
     private Long overdueDays;
     private Boolean canRequestReturn;
+    private Boolean canRenew;
+    private Integer renewalCount;
+    private Integer maxRenewals;
+    private String storageLocation;
     private String message;
 }

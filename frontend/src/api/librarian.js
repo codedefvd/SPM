@@ -25,6 +25,9 @@ export const librarianApi = {
   updateShelfStatus(token, bookId, payload) {
     return request(`/librarian/books/${bookId}/shelf-status`, { method: "PATCH", body: JSON.stringify(payload) }, token);
   },
+  updateCopyLocation(token, copyId, payload) {
+    return request(`/librarian/books/copies/${copyId}/location`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+  },
   deleteBook(token, bookId) {
     return request(`/librarian/books/${bookId}`, { method: "DELETE" }, token);
   },
@@ -88,5 +91,17 @@ export const librarianApi = {
   },
   getDetailedStatistics(token, periodType = "month") {
     return request(`/librarian/statistics/detailed?periodType=${encodeURIComponent(periodType)}`, {}, token);
+  },
+  listFeedbackConversations(token) {
+    return request("/librarian/feedback/conversations", {}, token);
+  },
+  listFeedbackMessages(token, conversationId) {
+    return request(`/librarian/feedback/conversations/${conversationId}/messages`, {}, token);
+  },
+  sendFeedbackMessage(token, conversationId, payload) {
+    return request(`/librarian/feedback/conversations/${conversationId}/messages`, { method: "POST", body: JSON.stringify(payload) }, token);
+  },
+  closeFeedbackConversation(token, conversationId) {
+    return request(`/librarian/feedback/conversations/${conversationId}/close`, { method: "PATCH" }, token);
   },
 };

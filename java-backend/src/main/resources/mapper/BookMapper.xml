@@ -15,6 +15,7 @@
         <result property="thumbnailUrl" column="thumbnail_url"/>
         <result property="publishedDate" column="published_date"/>
         <result property="shelfStatus" column="shelf_status"/>
+        <result property="storageLocation" column="storage_location"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
         <result property="deleted" column="deleted"/>
@@ -25,7 +26,7 @@
     </resultMap>
 
     <sql id="BaseBookColumns">
-        b.id, b.title, b.author, b.isbn, b.barcode, b.publisher, b.description, b.thumbnail_url, b.published_date, b.category_id, b.shelf_status,
+        b.id, b.title, b.author, b.isbn, b.barcode, b.publisher, b.description, b.thumbnail_url, b.published_date, b.category_id, b.shelf_status, b.storage_location,
         b.created_at, b.updated_at, b.deleted, c.name as category_name
     </sql>
 
@@ -82,8 +83,8 @@
     </select>
 
     <insert id="insert" parameterType="com.team.lms.entity.Book" useGeneratedKeys="true" keyProperty="id">
-        insert into books(title, author, isbn, barcode, publisher, description, thumbnail_url, published_date, category_id, shelf_status, created_at, updated_at, deleted)
-        values(#{title}, #{author}, #{isbn}, #{barcode}, #{publisher}, #{description}, #{thumbnailUrl}, #{publishedDate}, #{category.id}, #{shelfStatus}, now(), now(), false)
+        insert into books(title, author, isbn, barcode, publisher, description, thumbnail_url, published_date, category_id, shelf_status, storage_location, created_at, updated_at, deleted)
+        values(#{title}, #{author}, #{isbn}, #{barcode}, #{publisher}, #{description}, #{thumbnailUrl}, #{publishedDate}, #{category.id}, #{shelfStatus}, #{storageLocation}, now(), now(), false)
     </insert>
 
     <update id="update" parameterType="com.team.lms.entity.Book">
@@ -98,6 +99,7 @@
             published_date = #{publishedDate},
             category_id = #{category.id},
             shelf_status = #{shelfStatus},
+            storage_location = #{storageLocation},
             updated_at = now()
         where id = #{id}
     </update>

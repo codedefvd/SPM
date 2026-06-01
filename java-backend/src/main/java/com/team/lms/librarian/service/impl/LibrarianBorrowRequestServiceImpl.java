@@ -102,6 +102,7 @@ public class LibrarianBorrowRequestServiceImpl implements LibrarianBorrowRequest
             borrowRecord.setStatus(BorrowRecordStatus.BORROWED);
             borrowRecord.setBorrowDate(LocalDate.now());
             borrowRecord.setDueDate(LocalDate.now().plusDays(systemConfigSupport.getBorrowPeriodDays()));
+            borrowRecord.setRenewalCount(0);
             borrowRecordMapper.insert(borrowRecord);
 
             borrowRequest.setStatus(BorrowRequestStatus.APPROVED);

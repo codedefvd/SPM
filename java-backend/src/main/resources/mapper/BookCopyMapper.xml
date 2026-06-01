@@ -8,6 +8,7 @@
         <id property="id" column="id"/>
         <result property="copyNo" column="copy_no"/>
         <result property="barcode" column="barcode"/>
+        <result property="storageLocation" column="storage_location"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
         <result property="deleted" column="deleted"/>
@@ -15,6 +16,12 @@
             <id property="id" column="book_id"/>
         </association>
     </resultMap>
+
+    <select id="selectById" resultMap="BookCopyResultMap">
+        select * from book_copies
+        where id = #{id} and deleted = false
+        limit 1
+    </select>
 
     <select id="selectByBookId" resultMap="BookCopyResultMap">
         select * from book_copies
@@ -41,9 +48,16 @@
     </select>
 
     <insert id="insert" parameterType="com.team.lms.entity.BookCopy" useGeneratedKeys="true" keyProperty="id">
-        insert into book_copies(book_id, copy_no, barcode, created_at, updated_at, deleted)
-        values(#{book.id}, #{copyNo}, #{barcode}, now(), now(), false)
+        insert into book_copies(book_id, copy_no, barcode, storage_location, created_at, updated_at, deleted)
+        values(#{book.id}, #{copyNo}, #{barcode}, #{storageLocation}, now(), now(), false)
     </insert>
+
+    <update id="updateStorageLocation">
+        update book_copies
+        set storage_location = #{storageLocation},
+            updated_at = now()
+        where id = #{id} and deleted = false
+    </update>
 
     <delete id="softDeleteByIds">
         delete from book_copies

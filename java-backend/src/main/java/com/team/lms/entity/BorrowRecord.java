@@ -18,4 +18,5 @@ public class BorrowRecord extends BaseEntity {
     private LocalDate borrowDate;
     private LocalDate dueDate;
     private LocalDate returnDate;
+    private Integer renewalCount;
 }

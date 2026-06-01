@@ -14,6 +14,8 @@ public interface BookReviewMapper {
 
     BookReview selectByReaderAndBookId(@Param("readerId") Long readerId, @Param("bookId") Long bookId);
 
+    BookReview selectById(Long id);
+
     void insert(BookReview review);
 
     void update(BookReview review);

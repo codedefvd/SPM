@@ -1,5 +1,6 @@
 package com.team.lms.librarian.service;
 
+import com.team.lms.librarian.dto.BookCopyLocationUpdateRequest;
 import com.team.lms.librarian.dto.BookCreateRequest;
 import com.team.lms.librarian.dto.BookUpdateRequest;
 import com.team.lms.librarian.dto.InventoryUpdateRequest;
@@ -25,4 +26,6 @@ public interface LibrarianBookService {
     BookBarcodeVo getBookBarcode(String authorizationHeader, Long bookId);
 
     List<BookCopyVo> listBookCopies(String authorizationHeader, Long bookId);
+
+    BookCopyVo updateCopyLocation(String authorizationHeader, Long copyId, BookCopyLocationUpdateRequest request);
 }

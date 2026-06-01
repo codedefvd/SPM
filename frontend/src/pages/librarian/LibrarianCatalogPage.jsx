@@ -13,6 +13,7 @@ const EMPTY_BOOK_FORM = {
   description: "",
   thumbnailUrl: "",
   publishedDate: "",
+  storageLocation: "",
   totalCopies: 1,
   availableCopies: 1,
   shelfStatus: "ON_SHELF",
@@ -228,6 +229,26 @@ export function LibrarianCatalogPage({ workspace }) {
     }
   }
 
+  async function handleUpdateCopyLocation(copyId, storageLocation) {
+    if (!canManageInventory || !storageLocation?.trim()) {
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await librarianApi.updateCopyLocation(workspace?.token, copyId, { storageLocation: storageLocation.trim() });
+      setMessage(`Copy #${copyId} location updated.`);
+      if (selectedCopyBook) {
+        const result = await librarianApi.listBookCopies(workspace?.token, selectedCopyBook.bookId);
+        setBookCopies(result || []);
+      }
+    } catch (requestError) {
+      setError(requestError.message || "Failed to update copy location");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleLoadBookCopies(book) {
     setError("");
     setMessage("");
@@ -378,6 +399,7 @@ export function LibrarianCatalogPage({ workspace }) {
                   </select>
                   <input placeholder="Barcode" value={bookForm.barcode || "Will be generated automatically"} disabled />
                   <input placeholder="Publisher" value={bookForm.publisher} disabled={disableMetadataFields} onChange={(e) => setBookForm((prev) => ({ ...prev, publisher: e.target.value }))} />
+                  <input placeholder="Storage Location (e.g. 3F-A-12)" value={bookForm.storageLocation} disabled={disableMetadataFields} onChange={(e) => setBookForm((prev) => ({ ...prev, storageLocation: e.target.value }))} />
                   <input placeholder="Published Date" value={bookForm.publishedDate} disabled={disableMetadataFields} onChange={(e) => setBookForm((prev) => ({ ...prev, publishedDate: e.target.value }))} />
                   <select value={bookForm.shelfStatus} disabled={!canManageInventory} onChange={(e) => setBookForm((prev) => ({ ...prev, shelfStatus: e.target.value }))}>
                     <option value="ON_SHELF">ON_SHELF</option>
@@ -471,6 +493,7 @@ export function LibrarianCatalogPage({ workspace }) {
                     <th>Author</th>
                     <th>Copy Count</th>
                     <th>Category</th>
+                    <th>Location</th>
                     <th>Copies</th>
                     <th>Status</th>
                     <th>Action</th>
@@ -491,6 +514,7 @@ export function LibrarianCatalogPage({ workspace }) {
                       <td>{book.author}</td>
                       <td>{book.totalCopies ?? 0}</td>
                       <td>{book.categoryName || "Uncategorized"}</td>
+                      <td>{book.storageLocation || "-"}</td>
                       <td>{book.availableCopies ?? 0}/{book.totalCopies ?? 0}</td>
                       <td>{book.shelfStatus}</td>
                       <td>
@@ -503,7 +527,7 @@ export function LibrarianCatalogPage({ workspace }) {
                       </td>
                     </tr>
                   ))}
-                  {!loading && books.length === 0 ? <tr><td colSpan="9">No books.</td></tr> : null}
+                  {!loading && books.length === 0 ? <tr><td colSpan="10">No books.</td></tr> : null}
                 </tbody>
               </table>
             </div>
@@ -526,18 +550,23 @@ export function LibrarianCatalogPage({ workspace }) {
                     <tr>
                       <th>Copy No</th>
                       <th>Barcode</th>
+                      <th>Storage Location</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {bookCopies.map((copy) => (
-                      <tr key={copy.copyId}>
-                        <td>{copy.copyNo}</td>
-                        <td><Barcode value={copy.barcode} height={30} fontSize={10} displayValue={true} /></td>
-                      </tr>
+                      <CopyLocationRow
+                        key={copy.copyId}
+                        copy={copy}
+                        canManageInventory={canManageInventory}
+                        saving={saving}
+                        onSave={handleUpdateCopyLocation}
+                      />
                     ))}
                     {bookCopies.length === 0 ? (
                       <tr>
-                        <td colSpan="2">No copy barcodes.</td>
+                        <td colSpan="4">No copy barcodes.</td>
                       </tr>
                     ) : null}
                   </tbody>
@@ -562,6 +591,7 @@ function toBookForm(book) {
     description: book.description || "",
     thumbnailUrl: book.thumbnailUrl || "",
     publishedDate: book.publishedDate || "",
+    storageLocation: book.storageLocation || "",
     totalCopies: book.totalCopies ?? 0,
     availableCopies: book.availableCopies ?? 0,
     shelfStatus: book.shelfStatus || "ON_SHELF",
@@ -591,6 +621,46 @@ function validateBookForm(bookForm, canManageBooks, isEditing) {
     return "Available copies cannot be greater than total copies.";
   }
   return "";
+}
+
+function CopyLocationRow({ copy, canManageInventory, saving, onSave }) {
+  const [location, setLocation] = useState(copy.storageLocation || "");
+
+  useEffect(() => {
+    setLocation(copy.storageLocation || "");
+  }, [copy.storageLocation, copy.copyId]);
+
+  return (
+    <tr>
+      <td>{copy.copyNo}</td>
+      <td><Barcode value={copy.barcode} height={30} fontSize={10} displayValue={true} /></td>
+      <td>
+        {canManageInventory ? (
+          <input
+            value={location}
+            placeholder="e.g. 3F-A-12-05"
+            onChange={(event) => setLocation(event.target.value)}
+          />
+        ) : (
+          copy.storageLocation || "-"
+        )}
+      </td>
+      <td>
+        {canManageInventory ? (
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={saving}
+            onClick={() => onSave(copy.copyId, location)}
+          >
+            Save Location
+          </button>
+        ) : (
+          "-"
+        )}
+      </td>
+    </tr>
+  );
 }
 
 function validateCategoryForm(categoryForm, editingCategoryId) {

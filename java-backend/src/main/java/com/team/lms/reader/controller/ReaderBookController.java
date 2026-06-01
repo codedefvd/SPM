@@ -4,11 +4,14 @@ import com.team.lms.common.api.ApiResponse;
 import com.team.lms.common.api.BaseController;
 import com.team.lms.reader.dto.ReaderBorrowRequestCreateRequest;
 import com.team.lms.reader.dto.ReaderBookReviewCreateRequest;
+import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 import com.team.lms.reader.service.ReaderBookService;
 import com.team.lms.reader.vo.ReaderBookDetailVo;
 import com.team.lms.reader.vo.ReaderBookVo;
 import com.team.lms.reader.vo.ReaderBorrowRecordVo;
 import com.team.lms.reader.vo.ReaderBookReviewVo;
+import com.team.lms.reader.vo.ReaderReviewLikeVo;
+import com.team.lms.reader.vo.ReaderReviewReplyVo;
 import com.team.lms.reader.vo.ReaderBorrowRequestVo;
 import com.team.lms.reader.vo.ReaderFavoriteToggleVo;
 import com.team.lms.reader.vo.ReaderFinePaymentOrderVo;
@@ -74,6 +77,23 @@ public class ReaderBookController extends BaseController {
             @Valid @RequestBody ReaderBookReviewCreateRequest request
     ) {
         return success(readerBookService.submitReview(authorizationHeader, bookId, request));
+    }
+
+    @PostMapping("/reviews/{reviewId}/like")
+    public ApiResponse<ReaderReviewLikeVo> toggleReviewLike(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long reviewId
+    ) {
+        return success(readerBookService.toggleReviewLike(authorizationHeader, reviewId));
+    }
+
+    @PostMapping("/reviews/{reviewId}/replies")
+    public ApiResponse<ReaderReviewReplyVo> submitReviewReply(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long reviewId,
+            @Valid @RequestBody ReaderReviewReplyCreateRequest request
+    ) {
+        return success(readerBookService.submitReviewReply(authorizationHeader, reviewId, request));
     }
 
     @GetMapping("/records")

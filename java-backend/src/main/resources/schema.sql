@@ -198,6 +198,56 @@ create table if not exists book_reviews (
 
 alter table book_reviews drop index uq_book_review;
 
+alter table books add column storage_location varchar(255);
+alter table book_copies add column storage_location varchar(255);
+alter table borrow_records add column renewal_count int not null default 0;
+
+create table if not exists review_likes (
+    id bigint primary key auto_increment,
+    review_id bigint not null,
+    reader_id bigint not null,
+    created_at datetime not null,
+    constraint uq_review_like unique (review_id, reader_id),
+    constraint fk_review_like_review foreign key (review_id) references book_reviews(id),
+    constraint fk_review_like_reader foreign key (reader_id) references users(id)
+);
+
+create table if not exists review_replies (
+    id bigint primary key auto_increment,
+    review_id bigint not null,
+    reader_id bigint not null,
+    reply_content varchar(1000) not null,
+    created_at datetime not null,
+    updated_at datetime not null,
+    deleted boolean not null default false,
+    constraint fk_review_reply_review foreign key (review_id) references book_reviews(id),
+    constraint fk_review_reply_reader foreign key (reader_id) references users(id)
+);
+
+create table if not exists feedback_conversations (
+    id bigint primary key auto_increment,
+    reader_id bigint not null,
+    subject varchar(255) not null,
+    status varchar(32) not null,
+    created_at datetime not null,
+    updated_at datetime not null,
+    deleted boolean not null default false,
+    constraint fk_feedback_conv_reader foreign key (reader_id) references users(id)
+);
+
+create table if not exists feedback_messages (
+    id bigint primary key auto_increment,
+    conversation_id bigint not null,
+    sender_id bigint not null,
+    content varchar(2000) not null,
+    read_at datetime,
+    created_at datetime not null,
+    updated_at datetime not null,
+    deleted boolean not null default false,
+    constraint fk_feedback_msg_conv foreign key (conversation_id) references feedback_conversations(id),
+    constraint fk_feedback_msg_sender foreign key (sender_id) references users(id)
+);
+
 create table if not exists book_copies (
     id bigint primary key auto_increment,
     book_id bigint not null,
@@ -231,11 +281,11 @@ select 'admin', '123456', 'Demo Admin', 'A2026001', '13800000003', 'ADMIN', true
 where not exists (select 1 from users where username = 'admin');
 
 insert into role_permissions(role, permission_scope, created_at, updated_at, deleted)
-select 'READER', 'BOOK_SEARCH,BOOK_VIEW,BORROW_REQUEST,RETURN_REQUEST,RESERVATION', now(), now(), false
+select 'READER', 'BOOK_SEARCH,BOOK_VIEW,BORROW_REQUEST,RETURN_REQUEST,RESERVATION,FEEDBACK', now(), now(), false
 where not exists (select 1 from role_permissions where role = 'READER');
 
 insert into role_permissions(role, permission_scope, created_at, updated_at, deleted)
-select 'LIBRARIAN', 'BOOK_MANAGE,INVENTORY_MANAGE,REQUEST_PROCESS,RESERVATION_PROCESS,FINE_MANAGE', now(), now(), false
+select 'LIBRARIAN', 'BOOK_MANAGE,INVENTORY_MANAGE,REQUEST_PROCESS,RESERVATION_PROCESS,FINE_MANAGE,FEEDBACK_MANAGE', now(), now(), false
 where not exists (select 1 from role_permissions where role = 'LIBRARIAN');
 
 insert into role_permissions(role, permission_scope, created_at, updated_at, deleted)
@@ -253,6 +303,10 @@ where not exists (select 1 from system_configs where config_key = 'BORROW_LIMIT'
 insert into system_configs(config_key, config_value, description, created_at, updated_at, deleted)
 select 'OVERDUE_FINE_PER_DAY', '1.00', 'Overdue fine charged per day', now(), now(), false
 where not exists (select 1 from system_configs where config_key = 'OVERDUE_FINE_PER_DAY');
+
+insert into system_configs(config_key, config_value, description, created_at, updated_at, deleted)
+select 'MAX_RENEWALS', '2', 'Maximum renewals per borrow record', now(), now(), false
+where not exists (select 1 from system_configs where config_key = 'MAX_RENEWALS');
 
 insert into status_codes(code_type, code_value, display_name, description, enabled, created_at, updated_at, deleted)
 select 'BOOK_SHELF_STATUS', 'ON_SHELF', 'On Shelf', 'Book can be shown in catalog', true, now(), now(), false
@@ -320,6 +374,14 @@ update books
 set barcode = concat('LIB-', lpad(id, 8, '0'))
 where (barcode is null or barcode = '')
   and deleted = false;
+
+update books
+set storage_location = '3F-A区-计算机书架'
+where isbn = 'DEMO-ISBN-001' and (storage_location is null or storage_location = '');
+
+update books
+set storage_location = '3F-B区-技术书架'
+where isbn = 'DEMO-ISBN-002' and (storage_location is null or storage_location = '');
 
 insert into book_copies(book_id, copy_no, barcode, created_at, updated_at, deleted)
 select b.id, seq.copy_no, concat('LIB-', lpad(b.id, 6, '0'), '-', lpad(seq.copy_no, 3, '0')), now(), now(), false

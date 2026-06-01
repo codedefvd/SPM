@@ -18,4 +18,5 @@ public class Book extends BaseEntity {
     private String publishedDate;
     private Category category;
     private ShelfStatus shelfStatus;
+    private String storageLocation;
 }
