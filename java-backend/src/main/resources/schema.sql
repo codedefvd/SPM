@@ -431,3 +431,33 @@ INSERT INTO borrow_records (
              DATE_SUB(CURDATE(), INTERVAL 10 DAY),  -- 10天前应还
              NOW(), NOW(), false
          );
+
+SELECT reader_id, book_id, MAX(id) as keep_id
+FROM borrow_records
+WHERE deleted = false AND status = 'OVERDUE'
+GROUP BY reader_id, book_id;
+
+-- 第 2 步：删除其他记录关联的罚款
+DELETE f FROM fines f
+                  INNER JOIN borrow_records br ON f.borrow_record_id = br.id
+                  INNER JOIN (
+    SELECT reader_id, book_id, MAX(id) as max_id
+    FROM borrow_records
+    WHERE deleted = false AND status = 'OVERDUE'
+    GROUP BY reader_id, book_id
+) keep ON br.reader_id = keep.reader_id AND br.book_id = keep.book_id
+WHERE br.status = 'OVERDUE'
+  AND br.deleted = false
+  AND br.id != keep.max_id;
+
+-- 第 3 步：删除重复的借阅记录
+DELETE br FROM borrow_records br
+                   INNER JOIN (
+    SELECT reader_id, book_id, MAX(id) as max_id
+    FROM borrow_records
+    WHERE deleted = false AND status = 'OVERDUE'
+    GROUP BY reader_id, book_id
+) keep ON br.reader_id = keep.reader_id AND br.book_id = keep.book_id
+WHERE br.status = 'OVERDUE'
+  AND br.deleted = false
+  AND br.id != keep.max_id;
