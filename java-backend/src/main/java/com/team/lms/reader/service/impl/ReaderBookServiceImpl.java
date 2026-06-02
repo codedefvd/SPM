@@ -31,7 +31,6 @@ import com.team.lms.mapper.ReservationMapper;
 import com.team.lms.payment.AlipaySandboxPaymentService;
 import com.team.lms.reader.dto.ReaderBorrowRequestCreateRequest;
 import com.team.lms.reader.dto.ReaderBookReviewCreateRequest;
-import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 import com.team.lms.reader.service.ReaderBookService;
 import com.team.lms.reader.vo.ReaderBookDetailVo;
 import com.team.lms.reader.vo.ReaderBookVo;
@@ -46,6 +45,9 @@ import com.team.lms.reader.vo.ReaderReviewLikeVo;
 import com.team.lms.reader.vo.ReaderReviewReplyVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.team.lms.mapper.ReviewLikeMapper;
+import com.team.lms.mapper.ReviewReplyMapper;
+import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

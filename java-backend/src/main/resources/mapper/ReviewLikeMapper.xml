@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper
+                PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.team.lms.mapper.ReviewLikeMapper">
+
+    <resultMap id="ReviewLikeResultMap" type="com.team.lms.entity.ReviewLike">
+        <id property="id" column="id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
+        <association property="review" javaType="com.team.lms.entity.BookReview">
+            <id property="id" column="review_id"/>
+        </association>
+        <association property="reader" javaType="com.team.lms.entity.User">
+            <id property="id" column="reader_id"/>
+            <result property="username" column="reader_username"/>
+        </association>
+    </resultMap>
+
+    <select id="selectByReviewAndReader" resultMap="ReviewLikeResultMap">
+        select rl.id, rl.review_id, rl.reader_id, rl.created_at, rl.updated_at, rl.deleted,
+        u.username as reader_username
+        from review_likes rl
+        join users u on rl.reader_id = u.id
+        where rl.review_id = #{reviewId} and rl.reader_id = #{readerId} and rl.deleted = false
+    </select>
+
+    <select id="countByReviewId" resultType="int">
+        select count(*) from review_likes
+        where review_id = #{reviewId} and deleted = false
+    </select>
+
+    <insert id="insert" parameterType="com.team.lms.entity.ReviewLike" useGeneratedKeys="true" keyProperty="id">
+        insert into review_likes(review_id, reader_id, created_at, updated_at, deleted)
+        values(#{review.id}, #{reader.id}, now(), now(), false)
+            on duplicate key update
+                                 updated_at = now(),
+                                 deleted = false
+    </insert>
+
+
+    <update id="deleteById">
+        update review_likes
+        set deleted = true,
+        updated_at = now()
+        where id = #{id}
+    </update>
+</mapper>

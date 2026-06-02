@@ -123,4 +123,21 @@ public class LibrarianOperationsController extends BaseController {
             @RequestParam(value = "periodType", defaultValue = "month") String periodType) {
         return success(librarianOperationsService.getDetailedStatistics(authorizationHeader, periodType));
     }
+    @PostMapping("/borrow-records/{recordId}/send-reminder")
+    public ApiResponse<Void> sendOverdueReminder(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long recordId
+    ) {
+        librarianOperationsService.sendOverdueReminder(authorizationHeader, recordId);
+        return success(null);
+    }
+
+    @PostMapping("/borrow-records/send-all-reminders")
+    public ApiResponse<Integer> sendAllOverdueReminders(
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        int count = librarianOperationsService.sendAllOverdueReminders(authorizationHeader);
+        return success(count);
+    }
+
 }
