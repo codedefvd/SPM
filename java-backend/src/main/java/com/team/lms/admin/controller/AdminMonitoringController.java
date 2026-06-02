@@ -4,6 +4,7 @@ import com.team.lms.admin.dto.AdminBackupRestoreRequest;
 import com.team.lms.admin.service.AdminMonitoringService;
 import com.team.lms.admin.vo.AdminBackupRecordVo;
 import com.team.lms.admin.vo.AdminBusinessReportVo;
+import com.team.lms.admin.vo.AdminFineStatisticsVo;
 import com.team.lms.admin.vo.AdminMonitoringOverviewVo;
 import com.team.lms.admin.vo.AdminOperationLogVo;
 import com.team.lms.admin.vo.AdminRestoreResultVo;
@@ -36,6 +37,11 @@ public class AdminMonitoringController extends BaseController {
     @GetMapping("/reports")
     public ApiResponse<AdminBusinessReportVo> getBusinessReport(@RequestHeader("Authorization") String authorizationHeader) {
         return success(adminMonitoringService.getBusinessReport(authorizationHeader));
+    }
+
+    @GetMapping("/fine-statistics")
+    public ApiResponse<AdminFineStatisticsVo> getFineStatistics(@RequestHeader("Authorization") String authorizationHeader) {
+        return success(adminMonitoringService.getFineStatistics(authorizationHeader));
     }
 
     @GetMapping("/runtime-status")

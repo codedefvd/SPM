@@ -93,4 +93,17 @@
             updated_at = now()
         where id = #{id}
     </update>
+
+    <select id="sumAmountByStatusAndDateRange" resultType="java.math.BigDecimal">
+        select coalesce(sum(amount), 0)
+        from fines
+        where status = #{status}
+        and deleted = false
+        <if test="startDate != null">
+            and updated_at &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            and updated_at &lt; #{endDate}
+        </if>
+    </select>
 </mapper>
