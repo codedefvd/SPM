@@ -31,4 +31,6 @@ public interface LibrarianOperationsService {
 
     LibrarianStatsVo getStatistics(String authorizationHeader);
     LibrarianStatsDetailVo getDetailedStatistics(String authorizationHeader, String periodType);
+    void sendOverdueReminder(String authorizationHeader, Long recordId);
+    int sendAllOverdueReminders(String authorizationHeader);
 }

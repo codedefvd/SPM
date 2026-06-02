@@ -2,7 +2,6 @@ package com.team.lms.reader.service;
 
 import com.team.lms.reader.dto.ReaderBorrowRequestCreateRequest;
 import com.team.lms.reader.dto.ReaderBookReviewCreateRequest;
-import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 import com.team.lms.reader.vo.ReaderBookDetailVo;
 import com.team.lms.reader.vo.ReaderBookVo;
 import com.team.lms.reader.vo.ReaderBorrowRecordVo;
@@ -14,6 +13,7 @@ import com.team.lms.reader.vo.ReaderFavoriteToggleVo;
 import com.team.lms.reader.vo.ReaderFinePaymentOrderVo;
 import com.team.lms.reader.vo.ReaderFineVo;
 import com.team.lms.reader.vo.ReaderReservationVo;
+import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 
 import java.util.List;
 

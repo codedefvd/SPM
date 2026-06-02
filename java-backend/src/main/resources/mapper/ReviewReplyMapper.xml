@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper
+                PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.team.lms.mapper.ReviewReplyMapper">
+
+    <resultMap id="ReviewReplyResultMap" type="com.team.lms.entity.ReviewReply">
+        <id property="id" column="id"/>
+        <result property="replyContent" column="reply_content"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
+        <association property="review" javaType="com.team.lms.entity.BookReview">
+            <id property="id" column="review_id"/>
+        </association>
+        <association property="reader" javaType="com.team.lms.entity.User">
+            <id property="id" column="reader_id"/>
+            <result property="username" column="reader_username"/>
+        </association>
+    </resultMap>
+
+    <select id="selectByReviewId" resultMap="ReviewReplyResultMap">
+        select rr.id, rr.review_id, rr.reader_id, rr.reply_content,
+        rr.created_at, rr.updated_at, rr.deleted,
+        u.username as reader_username
+        from review_replies rr
+        join users u on rr.reader_id = u.id
+        where rr.review_id = #{reviewId} and rr.deleted = false
+        order by rr.created_at asc
+    </select>
+
+    <select id="selectById" resultMap="ReviewReplyResultMap">
+        select rr.id, rr.review_id, rr.reader_id, rr.reply_content,
+        rr.created_at, rr.updated_at, rr.deleted,
+        u.username as reader_username
+        from review_replies rr
+        join users u on rr.reader_id = u.id
+        where rr.id = #{id} and rr.deleted = false
+    </select>
+
+    <insert id="insert" parameterType="com.team.lms.entity.ReviewReply" useGeneratedKeys="true" keyProperty="id">
+        insert into review_replies(review_id, reader_id, reply_content, created_at, updated_at, deleted)
+        values(#{review.id}, #{reader.id}, #{replyContent}, now(), now(), false)
+    </insert>
+
+    <update id="update" parameterType="com.team.lms.entity.ReviewReply">
+        update review_replies
+        set reply_content = #{replyContent},
+        updated_at = now()
+        where id = #{id}
+    </update>
+
+    <update id="deleteById">
+        update review_replies
+        set deleted = true,
+        updated_at = now()
+        where id = #{id}
+    </update>
+</mapper>

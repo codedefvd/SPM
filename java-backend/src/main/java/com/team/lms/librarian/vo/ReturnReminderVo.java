@@ -14,6 +14,7 @@ public class ReturnReminderVo {
     private String copyBarcode;
     private Long readerId;
     private String readerUsername;
+    private String readerPhone;
     private String recordStatus;
     private String reminderType;
     private String borrowDate;

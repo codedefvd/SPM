@@ -4,7 +4,6 @@ import com.team.lms.common.api.ApiResponse;
 import com.team.lms.common.api.BaseController;
 import com.team.lms.reader.dto.ReaderBorrowRequestCreateRequest;
 import com.team.lms.reader.dto.ReaderBookReviewCreateRequest;
-import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 import com.team.lms.reader.service.ReaderBookService;
 import com.team.lms.reader.vo.ReaderBookDetailVo;
 import com.team.lms.reader.vo.ReaderBookVo;
@@ -21,6 +20,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.team.lms.reader.dto.ReaderReviewReplyCreateRequest;
 
 import java.util.List;
 

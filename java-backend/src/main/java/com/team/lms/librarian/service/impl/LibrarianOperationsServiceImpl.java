@@ -13,6 +13,7 @@ import com.team.lms.entity.Fine;
 import com.team.lms.entity.Inventory;
 import com.team.lms.entity.Reservation;
 import com.team.lms.exception.BusinessException;
+import com.team.lms.entity.User;
 import com.team.lms.librarian.dto.FineStatusUpdateRequest;
 import com.team.lms.librarian.dto.ReservationProcessRequest;
 import com.team.lms.librarian.dto.ReturnProcessRequest;
@@ -42,6 +43,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -438,6 +440,7 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .copyBarcode(record.getBookCopy() == null ? null : record.getBookCopy().getBarcode())
                 .readerId(record.getReader() == null ? null : record.getReader().getId())
                 .readerUsername(record.getReader() == null ? null : record.getReader().getUsername())
+                .readerPhone(record.getReader() == null ? null : record.getReader().getPhone())
                 .recordStatus(record.getStatus() == null ? null : record.getStatus().name())
                 .reminderType(overdueDays > 0 ? "OVERDUE" : "DUE_SOON")
                 .borrowDate(record.getBorrowDate() == null ? null : record.getBorrowDate().toString())
@@ -567,4 +570,73 @@ public class LibrarianOperationsServiceImpl implements LibrarianOperationsServic
                 .borrowTrend(borrowTrend)
                 .build();
     }
+    @Override
+    public void sendOverdueReminder(String authorizationHeader, Long recordId) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.LIBRARIAN,
+                List.of("REQUEST_PROCESS", "FINE_MANAGE")
+        );
+
+        BorrowRecord record = borrowRecordMapper.selectById(recordId);
+        if (record == null) {
+            throw new BusinessException(404, "Borrow record not found");
+        }
+
+        long overdueDays = calculateOverdueDays(record);
+        if (overdueDays <= 0) {
+            throw new BusinessException(400, "This record is not overdue");
+        }
+
+        User reader = record.getReader();
+        if (reader == null || reader.getPhone() == null || reader.getPhone().isEmpty()) {
+            throw new BusinessException(400, "Reader has no phone number");
+        }
+
+        String bookTitle = record.getBook() == null ? "Unknown Book" : record.getBook().getTitle();
+        String message = String.format(
+                "【Library Reminder】%s, your borrowed book \"%s\" is overdue by %d days. Please return it ASAP!",
+                reader.getUsername(), bookTitle, overdueDays
+        );
+
+        System.out.println("SMS sent to " + reader.getPhone() + ": " + message);
+    }
+
+    @Override
+    public int sendAllOverdueReminders(String authorizationHeader) {
+        permissionScopeSupport.requireAnyPermission(
+                authorizationHeader,
+                RoleType.LIBRARIAN,
+                List.of("REQUEST_PROCESS", "FINE_MANAGE")
+        );
+
+        List<BorrowRecord> overdueRecords = borrowRecordMapper.selectAll().stream()
+                .filter(this::isOverdueRecord)
+                .collect(Collectors.toList());
+
+        int sentCount = 0;
+        for (BorrowRecord record : overdueRecords) {
+            try {
+                User reader = record.getReader();
+                if (reader == null || reader.getPhone() == null || reader.getPhone().isEmpty()) {
+                    continue;
+                }
+
+                long overdueDays = calculateOverdueDays(record);
+                String bookTitle = record.getBook() == null ? "Unknown Book" : record.getBook().getTitle();
+                String message = String.format(
+                        "【Library Reminder】%s, your borrowed book \"%s\" is overdue by %d days. Please return it ASAP!",
+                        reader.getUsername(), bookTitle, overdueDays
+                );
+
+                System.out.println("SMS sent to " + reader.getPhone() + ": " + message);
+                sentCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to send reminder for record " + record.getId() + ": " + e.getMessage());
+            }
+        }
+
+        return sentCount;
+    }
 }
+

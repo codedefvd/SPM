@@ -30,6 +30,9 @@ create table if not exists books (
     barcode varchar(64) unique,
     publisher varchar(128),
     description varchar(2000),
+    thumbnail_url varchar(1024),
+    published_date varchar(32),
+    storage_location varchar(255),
     category_id bigint,
     shelf_status varchar(32) not null,
     created_at datetime not null,
@@ -37,10 +40,6 @@ create table if not exists books (
     deleted boolean not null default false,
     constraint fk_books_category foreign key (category_id) references categories(id)
 );
-
-alter table books add column barcode varchar(64) unique after isbn;
-alter table books add column thumbnail_url varchar(1024);
-alter table books add column published_date varchar(32);
 
 create table if not exists inventory (
     id bigint primary key auto_increment,
@@ -76,6 +75,7 @@ create table if not exists borrow_records (
     book_id bigint not null,
     borrow_request_id bigint,
     book_copy_id bigint,
+    renewal_count int not null default 0,
     status varchar(32) not null,
     borrow_date date not null,
     due_date date not null,
@@ -87,8 +87,6 @@ create table if not exists borrow_records (
     constraint fk_borrow_record_book foreign key (book_id) references books(id),
     constraint fk_borrow_record_request foreign key (borrow_request_id) references borrow_requests(id)
 );
-
-alter table borrow_records add column book_copy_id bigint after borrow_request_id;
 
 create table if not exists operation_logs (
     id bigint primary key auto_increment,
@@ -192,21 +190,21 @@ create table if not exists book_reviews (
     created_at datetime not null,
     updated_at datetime not null,
     deleted boolean not null default false,
+    constraint uq_book_review unique (reader_id, book_id),
     constraint fk_book_review_reader foreign key (reader_id) references users(id),
     constraint fk_book_review_book foreign key (book_id) references books(id)
 );
 
-alter table book_reviews drop index uq_book_review;
 
-alter table books add column storage_location varchar(255);
-alter table book_copies add column storage_location varchar(255);
-alter table borrow_records add column renewal_count int not null default 0;
+
 
 create table if not exists review_likes (
     id bigint primary key auto_increment,
     review_id bigint not null,
     reader_id bigint not null,
     created_at datetime not null,
+    updated_at datetime not null,
+    deleted boolean not null default false,
     constraint uq_review_like unique (review_id, reader_id),
     constraint fk_review_like_review foreign key (review_id) references book_reviews(id),
     constraint fk_review_like_reader foreign key (reader_id) references users(id)
@@ -253,12 +251,14 @@ create table if not exists book_copies (
     book_id bigint not null,
     copy_no int not null,
     barcode varchar(64) not null unique,
+    storage_location varchar(255),
     created_at datetime not null,
     updated_at datetime not null,
     deleted boolean not null default false,
     constraint uq_book_copy_no unique (book_id, copy_no),
     constraint fk_book_copy_book foreign key (book_id) references books(id)
 );
+
 
 insert into categories(code, name, enabled, created_at, updated_at, deleted)
 select 'CS', 'Computer Science', true, now(), now(), false
@@ -415,3 +415,19 @@ where seq.copy_no <= i.total_copies
       select 1 from book_copies bc
       where bc.book_id = b.id and bc.copy_no = seq.copy_no
   );
+
+-- 先确认 reader 和 book 的 ID
+SELECT id FROM users WHERE username = 'reader';
+SELECT id FROM books WHERE isbn = 'DEMO-ISBN-001';
+
+-- 插入一条逾期记录（假设 reader_id=1, book_id=1）
+INSERT INTO borrow_records (
+    reader_id, book_id, borrow_request_id,
+    renewal_count, status, borrow_date, due_date,
+    created_at, updated_at, deleted
+) VALUES (
+             1, 1, NULL, 0, 'OVERDUE',
+             DATE_SUB(CURDATE(), INTERVAL 40 DAY),  -- 40天前借的
+             DATE_SUB(CURDATE(), INTERVAL 10 DAY),  -- 10天前应还
+             NOW(), NOW(), false
+         );

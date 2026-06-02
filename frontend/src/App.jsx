@@ -15,7 +15,9 @@ import { ReaderFeedbackPage } from "./pages/reader/ReaderFeedbackPage";
 import { LibrarianCatalogPage } from "./pages/librarian/LibrarianCatalogPage";
 import { LibrarianRequestsPage } from "./pages/librarian/LibrarianRequestsPage";
 import { LibrarianOperationsPage } from "./pages/librarian/LibrarianOperationsPage";
+import { LibrarianNotificationsPage } from "./pages/librarian/LibrarianNotificationsPage";
 import { LibrarianFeedbackPage } from "./pages/librarian/LibrarianFeedbackPage";
+
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminMonitoringPage } from "./pages/admin/AdminMonitoringPage";
 
@@ -34,8 +36,9 @@ const pageRoutes = [
   { key: "reader-feedback", role: "READER", path: "/reader/feedback" },
   { key: "librarian-catalog", role: "LIBRARIAN", path: "/librarian/catalog" },
   { key: "librarian-requests", role: "LIBRARIAN", path: "/librarian/requests" },
+  { key: "librarian-notifications", role: "LIBRARIAN", path: "/librarian/notifications" },
   { key: "librarian-operations", role: "LIBRARIAN", path: "/librarian/operations" },
-  { key: "librarian-feedback", role: "LIBRARIAN", path: "/librarian/feedback" },
+    { key: "librarian-feedback", role: "LIBRARIAN", path: "/librarian/feedback" },
   { key: "admin-users", role: "ADMIN", path: "/admin/users" },
   { key: "admin-monitoring", role: "ADMIN", path: "/admin/monitoring" },
 ];
@@ -90,6 +93,9 @@ function filterMenusByPermissions(workspace) {
     if (item.key === "librarian-operations") {
       return hasAnyPermission(workspace, ["REQUEST_PROCESS", "RESERVATION_PROCESS", "FINE_MANAGE"]);
     }
+      if (item.key === "librarian-notifications") {  // ← 添加这3行
+          return hasAnyPermission(workspace, ["REQUEST_PROCESS", "FINE_MANAGE"]);
+      }
     if (item.key === "librarian-feedback") {
       return hasAnyPermission(workspace, ["FEEDBACK_MANAGE"]);
     }
@@ -294,6 +300,10 @@ export default function App() {
         path="/librarian/operations"
         element={renderProtectedPage("LIBRARIAN", "librarian-operations", <LibrarianOperationsPage workspace={workspace} />)}
       />
+        <Route
+            path="/librarian/notifications"
+            element={renderProtectedPage("LIBRARIAN", "librarian-notifications", <LibrarianNotificationsPage workspace={workspace} />)}
+        />
       <Route
         path="/librarian/feedback"
         element={renderProtectedPage("LIBRARIAN", "librarian-feedback", <LibrarianFeedbackPage workspace={workspace} />)}

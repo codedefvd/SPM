@@ -104,4 +104,10 @@ export const librarianApi = {
   closeFeedbackConversation(token, conversationId) {
     return request(`/librarian/feedback/conversations/${conversationId}/close`, { method: "PATCH" }, token);
   },
+  sendOverdueReminder(token, recordId) {
+        return request(`/librarian/borrow-records/${recordId}/send-reminder`, { method: "POST" }, token);
+    },
+   sendAllOverdueReminders(token) {
+        return request(`/librarian/borrow-records/send-all-reminders`, { method: "POST" }, token);
+    },
 };
