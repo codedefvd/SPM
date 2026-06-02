@@ -6,6 +6,8 @@ export function AdminMonitoringPage({ workspace }) {
   const token = workspace?.token;
   const [overview, setOverview] = useState(null);
   const [report, setReport] = useState(null);
+  const [fineStats, setFineStats] = useState(null);
+  const [fineTimeRange, setFineTimeRange] = useState("total");
   const [runtimeStatus, setRuntimeStatus] = useState(null);
   const [logs, setLogs] = useState([]);
   const [abnormalBehaviors, setAbnormalBehaviors] = useState([]);
@@ -22,9 +24,10 @@ export function AdminMonitoringPage({ workspace }) {
     setLoading(true);
     setMessage("");
     try {
-      const [overviewResult, reportResult, runtimeResult, logRows, abnormalRows, backupRows] = await Promise.all([
+      const [overviewResult, reportResult, fineStatsResult, runtimeResult, logRows, abnormalRows, backupRows] = await Promise.all([
         adminApi.getMonitoringOverview(token),
         adminApi.getBusinessReport(token),
+        adminApi.getFineStatistics(token),
         adminApi.getRuntimeStatus(token),
         adminApi.listOperationLogs(token),
         adminApi.listAbnormalBehaviors(token),
@@ -32,6 +35,7 @@ export function AdminMonitoringPage({ workspace }) {
       ]);
       setOverview(overviewResult || {});
       setReport(reportResult || {});
+      setFineStats(fineStatsResult || {});
       setRuntimeStatus(runtimeResult || {});
       setLogs(logRows || []);
       setAbnormalBehaviors(abnormalRows || []);
@@ -93,6 +97,25 @@ export function AdminMonitoringPage({ workspace }) {
     { label: "Latest Backup", value: overview?.latestBackup || "No backup yet" },
   ]), [overview]);
 
+  const timeRangeOptions = [
+    { key: "total", label: "全部" },
+    { key: "today", label: "当日" },
+    { key: "yesterday", label: "昨日" },
+    { key: "lastWeek", label: "上周" },
+    { key: "lastMonth", label: "上月" },
+  ];
+
+  function getPaidAmount() {
+    if (!fineStats) return 0;
+    switch (fineTimeRange) {
+      case "today": return fineStats.paidFineToday ?? 0;
+      case "yesterday": return fineStats.paidFineYesterday ?? 0;
+      case "lastWeek": return fineStats.paidFineLastWeek ?? 0;
+      case "lastMonth": return fineStats.paidFineLastMonth ?? 0;
+      default: return fineStats.paidFineTotal ?? 0;
+    }
+  }
+
   const reportBreakdowns = [
     { title: "Borrow Status Breakdown", items: report?.borrowStatusBreakdown || [] },
     { title: "Borrow Request Breakdown", items: report?.requestStatusBreakdown || [] },
@@ -128,6 +151,38 @@ export function AdminMonitoringPage({ workspace }) {
             {message}
           </p>
         ) : null}
+      </section>
+
+      <section className="page-card">
+        <div className="section-head compact">
+          <div>
+            <span className="eyebrow">Fine Revenue</span>
+            <h3 className="section-title">罚款收支概览</h3>
+          </div>
+        </div>
+        <div className="fine-overview-grid">
+          <div className="fine-card fine-card--unpaid">
+            <small>仍未收回的欠款总额</small>
+            <strong>{formatCurrency(fineStats?.unpaidFineAmount)}</strong>
+            <span className="fine-hint">所有未缴纳罚款的累计金额</span>
+          </div>
+          <div className="fine-card fine-card--paid">
+            <small>罚款收入总额</small>
+            <strong>{formatCurrency(getPaidAmount())}</strong>
+            <div className="fine-time-tabs">
+              {timeRangeOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`time-tab${fineTimeRange === opt.key ? " time-tab--active" : ""}`}
+                  onClick={() => setFineTimeRange(opt.key)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="page-card split-grid">
@@ -199,6 +254,7 @@ export function AdminMonitoringPage({ workspace }) {
           <StatCard label="Unavailable Books" value={report?.unavailableBooks ?? 0} />
           <StatCard label="Available Copies" value={report?.availableInventoryCopies ?? 0} />
           <StatCard label="Unpaid Fine Amount" value={formatCurrency(report?.unpaidFineAmount)} />
+          <StatCard label="Paid Fine Amount" value={formatCurrency(report?.paidFineAmount)} />
         </div>
 
         <div className="split-grid" style={{ marginTop: "18px" }}>

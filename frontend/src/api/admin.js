@@ -67,6 +67,9 @@ export const adminApi = {
   getBusinessReport(token) {
     return request("/admin/monitoring/reports", {}, token);
   },
+  getFineStatistics(token) {
+    return request("/admin/monitoring/fine-statistics", {}, token);
+  },
   getRuntimeStatus(token) {
     return request("/admin/monitoring/runtime-status", {}, token);
   },

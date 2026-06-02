@@ -875,3 +875,96 @@ td svg.barcode-cell {
   display: block;
   max-width: 200px;
 }
+
+/* Fine Overview */
+.fine-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.fine-card {
+  padding: 24px;
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+}
+
+.fine-card small {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fine-card strong {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.fine-card--unpaid {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.fine-card--unpaid small {
+  color: #991b1b;
+}
+
+.fine-card--unpaid strong {
+  color: #dc2626;
+}
+
+.fine-card--paid {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.fine-card--paid small {
+  color: #166534;
+}
+
+.fine-card--paid strong {
+  color: #15803d;
+}
+
+.fine-hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.fine-time-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.time-tab {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid #bbf7d0;
+  background: #ffffff;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.time-tab:hover {
+  background: #dcfce7;
+}
+
+.time-tab--active {
+  background: #15803d;
+  color: #ffffff;
+  border-color: #15803d;
+}
+
+@media (max-width: 760px) {
+  .fine-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}

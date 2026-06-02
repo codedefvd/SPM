@@ -7,6 +7,7 @@ import com.team.lms.admin.dto.AdminBackupRestoreRequest;
 import com.team.lms.admin.service.AdminMonitoringService;
 import com.team.lms.admin.vo.AdminBackupRecordVo;
 import com.team.lms.admin.vo.AdminBusinessReportVo;
+import com.team.lms.admin.vo.AdminFineStatisticsVo;
 import com.team.lms.admin.vo.AdminMetricItemVo;
 import com.team.lms.admin.vo.AdminMonitoringOverviewVo;
 import com.team.lms.admin.vo.AdminOperationLogVo;
@@ -181,6 +182,39 @@ public class AdminMonitoringServiceImpl implements AdminMonitoringService {
                 .borrowStatusBreakdown(toMetricItems(groupByLabel(borrowRecords.stream().map(item -> String.valueOf(item.getStatus())).toList())))
                 .requestStatusBreakdown(toMetricItems(groupByLabel(borrowRequests.stream().map(item -> String.valueOf(item.getStatus())).toList())))
                 .reservationStatusBreakdown(toMetricItems(groupByLabel(reservations.stream().map(item -> String.valueOf(item.getStatus())).toList())))
+                .build();
+    }
+
+    @Override
+    public AdminFineStatisticsVo getFineStatistics(String authorizationHeader) {
+        requireAdmin(authorizationHeader);
+
+        BigDecimal unpaidFineAmount = fineMapper.sumAmountByStatusAndDateRange("UNPAID", null, null);
+        BigDecimal paidFineTotal = fineMapper.sumAmountByStatusAndDateRange("PAID", null, null);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        BigDecimal paidFineToday = fineMapper.sumAmountByStatusAndDateRange("PAID", todayStart, null);
+
+        LocalDateTime yesterdayStart = todayStart.minusDays(1);
+        BigDecimal paidFineYesterday = fineMapper.sumAmountByStatusAndDateRange("PAID", yesterdayStart, todayStart);
+
+        LocalDateTime thisWeekStart = now.toLocalDate().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+        LocalDateTime lastWeekStart = thisWeekStart.minusDays(7);
+        BigDecimal paidFineLastWeek = fineMapper.sumAmountByStatusAndDateRange("PAID", lastWeekStart, thisWeekStart);
+
+        LocalDateTime thisMonthStart = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime lastMonthStart = thisMonthStart.minusMonths(1);
+        BigDecimal paidFineLastMonth = fineMapper.sumAmountByStatusAndDateRange("PAID", lastMonthStart, thisMonthStart);
+
+        return AdminFineStatisticsVo.builder()
+                .unpaidFineAmount(unpaidFineAmount)
+                .paidFineTotal(paidFineTotal)
+                .paidFineToday(paidFineToday)
+                .paidFineYesterday(paidFineYesterday)
+                .paidFineLastWeek(paidFineLastWeek)
+                .paidFineLastMonth(paidFineLastMonth)
                 .build();
     }
 
